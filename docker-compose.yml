@@ -12,6 +12,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       OCR_MODE: ${OCR_MODE:-auto}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4}
       RECEIPT_STORAGE_PATH: /data/receipts
       CORS_ORIGINS: '["https://finance.armandointeligencia.com"]'
     volumes:
