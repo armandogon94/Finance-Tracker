@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
 
     # OCR
-    ocr_mode: str = "auto"  # auto, cloud, offline, manual
+    ocr_mode: str = "auto"  # auto, cloud, ollama, offline, manual
+
+    # Ollama (local LLM for OCR)
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "gemma4"
 
     # Storage
     receipt_storage_path: str = "/data/receipts"
