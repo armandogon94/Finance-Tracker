@@ -2,7 +2,8 @@
 Dual-mode OCR service for receipt data extraction.
 
 Mode 1 (Cloud): Claude Haiku 4.5 Vision API -- high accuracy, bilingual (EN/ES).
-Mode 2 (Offline): Tesseract OCR with Pillow preprocessing -- local fallback.
+Mode 2 (Ollama): Local LLM via Ollama (e.g. Gemma 4) -- medium accuracy, free/private.
+Mode 3 (Offline): Tesseract OCR with Pillow preprocessing -- local fallback.
 Dispatcher selects mode based on settings or explicit override.
 """
 
@@ -14,6 +15,7 @@ import re
 from typing import Any
 
 import anthropic
+import httpx
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 
@@ -22,10 +24,20 @@ from src.app.config import settings
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Shared constants
+# ---------------------------------------------------------------------------
+
+_CATEGORY_LIST = (
+    "Groceries, Dining, Transportation, Entertainment, Shopping, "
+    "Healthcare, Utilities, Gas/Fuel, Travel, Education, "
+    "Personal Care, Home, Insurance, Subscriptions, Other"
+)
+
+# ---------------------------------------------------------------------------
 # Claude Vision (cloud) extraction
 # ---------------------------------------------------------------------------
 
-_CLAUDE_RECEIPT_PROMPT = """You are a receipt data extractor. Analyze this receipt image and extract
+_CLAUDE_RECEIPT_PROMPT = f"""You are a receipt data extractor. Analyze this receipt image and extract
 structured data. The receipt may be in English or Spanish (or a mix).
 
 Extract the following fields:
@@ -35,12 +47,14 @@ Extract the following fields:
 - tax_amount: Tax / IVA / Impuesto amount (number, no currency symbol)
 - total_amount: Final total (number, no currency symbol)
 - currency: Three-letter currency code (USD, MXN, EUR, etc.)
-- items: Array of line items, each with {description, quantity, unit_price}
+- items: Array of line items, each with {{description, quantity, unit_price}}
 - payment_method: How it was paid (cash/credit/debit/unknown)
+- category_suggestion: The single best expense category from this list: {_CATEGORY_LIST}
 
 Rules:
 - If a field is unreadable or missing, set it to null.
 - For Spanish receipts: IVA = tax, TOTAL = total, SUBTOTAL = subtotal.
+- category_suggestion: pick based on the merchant type and items purchased.
 - Return ONLY valid JSON. No explanation, no markdown fences."""
 
 
@@ -120,6 +134,133 @@ def extract_receipt_claude(image_base64: str) -> dict[str, Any]:
         return {
             "error": f"Unexpected OCR error: {str(exc)}",
             "method": "claude",
+            "needs_review": True,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Ollama (local LLM) extraction
+# ---------------------------------------------------------------------------
+
+_OLLAMA_RECEIPT_PROMPT = f"""Extract structured data from this receipt image. Return ONLY valid JSON matching this exact schema:
+
+{{
+  "merchant_name": "string or null",
+  "date": "YYYY-MM-DD or null",
+  "subtotal": number or null,
+  "tax_amount": number or null,
+  "total_amount": number or null,
+  "currency": "USD/MXN/EUR/etc or null",
+  "items": [{{"description": "string", "quantity": number, "unit_price": number}}],
+  "payment_method": "cash/credit/debit/unknown",
+  "category_suggestion": "one of: {_CATEGORY_LIST}"
+}}
+
+Rules:
+- Numbers must be plain (no $ or currency symbols).
+- Set unreadable or missing fields to null.
+- For Spanish receipts: IVA = tax, TOTAL = total, SUBTOTAL = subtotal.
+- category_suggestion: pick the single best category from the list based on merchant type and items.
+- Return ONLY the JSON object. No explanation, no markdown fences, no extra text."""
+
+
+def _extract_json_from_text(text: str) -> str:
+    """Try to extract a JSON object from text that may contain extra content."""
+    # First try: strip markdown fences
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+    # If it looks like valid JSON now, return it
+    if cleaned.startswith("{"):
+        return cleaned
+
+    # Fallback: find the first JSON object in the text
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        return match.group(0)
+
+    return cleaned
+
+
+def extract_receipt_ollama(image_base64: str) -> dict[str, Any]:
+    """Send a base64-encoded image to Ollama for receipt extraction.
+
+    Uses the Ollama native /api/chat endpoint with vision support.
+    Returns a dict with extracted receipt fields, or an error dict on failure.
+    """
+    if not settings.ollama_base_url:
+        return {"error": "Ollama base URL not configured", "method": "ollama"}
+
+    url = f"{settings.ollama_base_url.rstrip('/')}/api/chat"
+    payload = {
+        "model": settings.ollama_model,
+        "messages": [
+            {
+                "role": "user",
+                "content": _OLLAMA_RECEIPT_PROMPT,
+                "images": [image_base64],
+            }
+        ],
+        "stream": False,
+        "options": {
+            "temperature": 0.1,
+        },
+    }
+
+    raw_text = ""
+    try:
+        with httpx.Client(timeout=120.0) as client:
+            response = client.post(url, json=payload)
+            response.raise_for_status()
+
+        result = response.json()
+        raw_text = result["message"]["content"].strip()
+
+        cleaned = _extract_json_from_text(raw_text)
+        parsed = json.loads(cleaned)
+        parsed["method"] = "ollama"
+        parsed["confidence"] = "medium"
+        parsed["needs_review"] = True
+        return parsed
+
+    except httpx.ConnectError as exc:
+        logger.warning(
+            "Cannot connect to Ollama at %s: %s", settings.ollama_base_url, exc
+        )
+        return {
+            "error": f"Cannot connect to Ollama at {settings.ollama_base_url} — is Ollama running?",
+            "method": "ollama",
+            "needs_review": True,
+        }
+    except httpx.TimeoutException as exc:
+        logger.warning("Ollama request timed out: %s", exc)
+        return {
+            "error": "Ollama request timed out (model may still be loading)",
+            "method": "ollama",
+            "needs_review": True,
+        }
+    except httpx.HTTPStatusError as exc:
+        logger.warning("Ollama HTTP error %s: %s", exc.response.status_code, exc)
+        return {
+            "error": f"Ollama HTTP error: {exc.response.status_code}",
+            "method": "ollama",
+            "needs_review": True,
+        }
+    except json.JSONDecodeError as exc:
+        logger.warning("Ollama returned non-JSON: %s", exc)
+        return {
+            "error": "Failed to parse Ollama response as JSON",
+            "raw_response": raw_text[:500] if raw_text else None,
+            "method": "ollama",
+            "needs_review": True,
+        }
+    except Exception as exc:
+        logger.error("Unexpected Ollama OCR error: %s", exc, exc_info=True)
+        return {
+            "error": f"Unexpected Ollama error: {str(exc)}",
+            "method": "ollama",
             "needs_review": True,
         }
 
@@ -210,6 +351,7 @@ def extract_receipt_tesseract(image_path: str) -> dict[str, Any]:
             "currency": None,  # Tesseract can't reliably detect currency
             "items": [],  # Line-item parsing is unreliable with Tesseract
             "payment_method": None,
+            "category_suggestion": None,
             "raw_text": raw_text,
             "method": "tesseract",
             "confidence": "low",
@@ -245,14 +387,15 @@ def extract_receipt(
     """Dispatch receipt extraction to the appropriate OCR backend.
 
     Modes:
-        auto    - Try Claude first; on failure fall back to Tesseract.
+        auto    - Try Claude first; then Ollama; then Tesseract.
         cloud   - Claude Vision only.
+        ollama  - Ollama (local LLM) only.
         offline - Tesseract only.
         manual  - Skip OCR entirely (user will enter data manually).
 
     Args:
         image_path:   Filesystem path to the receipt image (needed for Tesseract).
-        image_base64: Base64-encoded JPEG (needed for Claude).
+        image_base64: Base64-encoded JPEG (needed for Claude / Ollama).
         mode:         OCR mode override. Defaults to "auto".
 
     Returns:
@@ -274,18 +417,29 @@ def extract_receipt(
             return {"error": "No base64 image provided for cloud OCR", "method": "cloud"}
         return extract_receipt_claude(image_base64)
 
+    # Ollama-only mode
+    if effective_mode == "ollama":
+        if not image_base64:
+            return {"error": "No base64 image provided for Ollama OCR", "method": "ollama"}
+        return extract_receipt_ollama(image_base64)
+
     # Offline-only mode
     if effective_mode == "offline":
         if not image_path:
             return {"error": "No image path provided for offline OCR", "method": "tesseract"}
         return extract_receipt_tesseract(image_path)
 
-    # Auto mode (default): Claude first, Tesseract fallback
+    # Auto mode (default): Claude -> Ollama -> Tesseract
     if image_base64:
         result = extract_receipt_claude(image_base64)
         if "error" not in result:
             return result
-        logger.info("Claude OCR failed, falling back to Tesseract: %s", result.get("error"))
+        logger.info("Claude OCR failed, falling back to Ollama: %s", result.get("error"))
+
+        result = extract_receipt_ollama(image_base64)
+        if "error" not in result:
+            return result
+        logger.info("Ollama OCR failed, falling back to Tesseract: %s", result.get("error"))
 
     if image_path:
         return extract_receipt_tesseract(image_path)
