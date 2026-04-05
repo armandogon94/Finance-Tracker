@@ -1,0 +1,46 @@
+services:
+  finance-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/finance_db
+      JWT_SECRET: dev-secret-not-for-production
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OCR_MODE: auto
+      RECEIPT_STORAGE_PATH: /data/receipts
+      DEBUG: "true"
+      CORS_ORIGINS: '["http://localhost:3000","https://localhost:3000"]'
+    volumes:
+      - ./backend/src:/app/src
+      - receipt_data:/data/receipts
+    command: uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8002
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finance_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  receipt_data:
+    driver: local
+  postgres_data:
+    driver: local

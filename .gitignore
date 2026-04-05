@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+backend/.venv/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.local
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+test.db
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+receipt_data/
+
+# uv
+backend/uv.lock
+
+# Cache
+.ruff_cache/
+.turbo/
+tsconfig.tsbuildinfo
+
+# Testing
+test-results/
+playwright-report/
+
+# Temporary
+*.tmp
+*.bak
+
+# Testing
+.pytest_cache/
+
+# Claude Code - user specific
+.claude/projects/
+.claude/settings.local.json

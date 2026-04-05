@@ -1,0 +1,115 @@
+services:
+  finance-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${DB_PASSWORD:-postgres}@postgres:5432/finance_db
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      OCR_MODE: ${OCR_MODE:-auto}
+      RECEIPT_STORAGE_PATH: /data/receipts
+      CORS_ORIGINS: '["https://finance.armandointeligencia.com"]'
+    volumes:
+      - receipt_data:/data/receipts
+    networks:
+      - backend
+      - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.finance-api.rule=Host(`api.finance.armandointeligencia.com`)"
+      - "traefik.http.routers.finance-api.entrypoints=websecure"
+      - "traefik.http.routers.finance-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.finance-api.loadbalancer.server.port=8002"
+
+  finance-web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - finance-api
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.finance.armandointeligencia.com
+    networks:
+      - frontend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.finance.rule=Host(`finance.armandointeligencia.com`)"
+      - "traefik.http.routers.finance.entrypoints=websecure"
+      - "traefik.http.routers.finance.tls.certresolver=letsencrypt"
+      - "traefik.http.services.finance.loadbalancer.server.port=3000"
+
+  telegram-bot:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.telegram
+    depends_on:
+      postgres:
+        condition: service_healthy
+      finance-api:
+        condition: service_healthy
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      API_BASE_URL: http://finance-api:8002
+      DATABASE_URL: postgresql+asyncpg://postgres:${DB_PASSWORD:-postgres}@postgres:5432/finance_db
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 256M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: finance_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  receipt_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+networks:
+  backend:
+  frontend:
