@@ -142,7 +142,7 @@ def extract_receipt_claude(image_base64: str) -> dict[str, Any]:
 # Ollama (local LLM) extraction
 # ---------------------------------------------------------------------------
 
-_OLLAMA_RECEIPT_PROMPT = f"""Extract structured data from this receipt image. Return ONLY valid JSON matching this exact schema:
+_OLLAMA_RECEIPT_PROMPT = f"""Extract structured data from this receipt image. Return ONLY valid JSON with this schema:
 
 {{
   "merchant_name": "string or null",
@@ -159,8 +159,12 @@ _OLLAMA_RECEIPT_PROMPT = f"""Extract structured data from this receipt image. Re
 Rules:
 - Numbers must be plain (no $ or currency symbols).
 - Set unreadable or missing fields to null.
+- total_amount = the amount the customer actually paid. Look for "Total", "Payment", "Amount Due", or "CHARGE" amount. If a gift card or reward was used, the total is the amount after applying it. "Balance" on a gift card line is NOT the total.
+- tax_amount = the dollar amount of sales tax charged. If the tax line shows both a taxable base and a tax amount (e.g. "TAX 8% on $5.28 $0.46"), the tax_amount is the LAST/smaller number ($0.46), not the taxable base. Look for "Tax", "Sales Tax", state names like "NY Tax" or "Nevada".
+- Verify: subtotal + tax_amount should approximately equal total_amount. If they don't, re-read the numbers.
 - For Spanish receipts: IVA = tax, TOTAL = total, SUBTOTAL = subtotal.
-- category_suggestion: pick the single best category from the list based on merchant type and items.
+- items: include up to 5 items maximum. Skip the rest.
+- category_suggestion: pick based on what was PURCHASED, not just the store name. Use "Groceries" for food and grocery items. Use "Dining" for restaurants and coffee shops. Use "Home" for household/cleaning supplies. Use "Shopping" for clothing, electronics, general merchandise.
 - Return ONLY the JSON object. No explanation, no markdown fences, no extra text."""
 
 
@@ -205,7 +209,7 @@ def extract_receipt_ollama(image_base64: str) -> dict[str, Any]:
         ],
         "stream": False,
         "options": {
-            "temperature": 0.1,
+            "temperature": 0.0,
         },
     }
 
