@@ -43,6 +43,9 @@ tsconfig.tsbuildinfo
 # Testing
 test-results/
 playwright-report/
+.playwright-mcp/
+e2e-screenshots/
+e2e-test.mjs
 
 # Temporary
 *.tmp
