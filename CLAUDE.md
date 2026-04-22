@@ -1,5 +1,7 @@
 # Finance Tracker — Expense Tracking with Receipt Scanner & Debt Tracking
 
+> **Port allocation:** See [PORTS.md](PORTS.md) before changing any docker-compose ports. All ports outside the assigned ranges are taken by other projects.
+
 ## Project Overview
 Mobile-first expense tracking web app at **finance.armandointeligencia.com**. This is a responsive website (NOT a native app) with a login screen. Works on iPhone Safari, Android Chrome, and desktop browsers. Users can "Add to Home Screen" for a native-like shortcut.
 

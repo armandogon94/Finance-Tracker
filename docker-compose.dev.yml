@@ -4,7 +4,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8002:8002"
+      - "8040:8002"
     depends_on:
       postgres:
         condition: service_healthy
@@ -17,7 +17,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4}
       RECEIPT_STORAGE_PATH: /data/receipts
       DEBUG: "true"
-      CORS_ORIGINS: '["http://localhost:3000","https://localhost:3000"]'
+      CORS_ORIGINS: '["http://localhost:3040","https://localhost:3040"]'
     volumes:
       - ./backend/src:/app/src
       - receipt_data:/data/receipts
@@ -28,11 +28,11 @@ services:
     image: node:22-alpine
     working_dir: /app
     ports:
-      - "3000:3000"
+      - "3040:3000"
     depends_on:
       - finance-api
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8002
+      NEXT_PUBLIC_API_URL: http://localhost:8040
       NEXT_TELEMETRY_DISABLED: 1
     volumes:
       - ./frontend:/app
@@ -43,7 +43,7 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
