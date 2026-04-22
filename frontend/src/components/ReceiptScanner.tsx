@@ -17,7 +17,6 @@ interface OcrResult {
   merchant: string;
   date: string;
   total: number;
-  tax: number;
   items: { description: string; amount: number }[];
 }
 
@@ -57,15 +56,19 @@ export default function ReceiptScanner({ onSaved }: ReceiptScannerProps) {
         lastModified: Date.now(),
       });
 
-      // Upload for OCR
+      // Upload for OCR. Response shape: { ocr_data: { merchant_name, total_amount, date, items: [{description, unit_price}] }, ... }
       const data = await api.scanReceipt(compressedFile);
+      const ocr = (data?.ocr_data ?? {}) as Record<string, unknown>;
+      const rawItems = Array.isArray(ocr.items) ? (ocr.items as Array<Record<string, unknown>>) : [];
 
       setResult({
-        merchant: data.merchant || "",
-        date: data.date || new Date().toISOString().split("T")[0],
-        total: data.total ?? 0,
-        tax: data.tax ?? 0,
-        items: Array.isArray(data.items) ? data.items : [],
+        merchant: (ocr.merchant_name as string) || "",
+        date: (ocr.date as string) || new Date().toISOString().split("T")[0],
+        total: Number(ocr.total_amount ?? 0) || 0,
+        items: rawItems.map((it) => ({
+          description: String(it.description ?? ""),
+          amount: Number(it.unit_price ?? 0) || 0,
+        })),
       });
       setStatus("review");
     } catch (err: unknown) {
@@ -108,7 +111,6 @@ export default function ReceiptScanner({ onSaved }: ReceiptScannerProps) {
     try {
       await api.createExpense({
         amount: result.total,
-        tax_amount: result.tax || undefined,
         merchant_name: result.merchant || undefined,
         expense_date: result.date,
         description: result.items.map((i) => i.description).join(", ") || undefined,
@@ -234,42 +236,23 @@ export default function ReceiptScanner({ onSaved }: ReceiptScannerProps) {
             />
           </div>
 
-          {/* Total & Tax side by side */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Total
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={result.total}
-                onChange={(e) =>
-                  updateField("total", parseFloat(e.target.value) || 0)
-                }
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3
-                           text-sm text-gray-800 focus:outline-none focus:ring-2
-                           focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Tax
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={result.tax}
-                onChange={(e) =>
-                  updateField("tax", parseFloat(e.target.value) || 0)
-                }
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3
-                           text-sm text-gray-800 focus:outline-none focus:ring-2
-                           focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
+          {/* Total */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Total
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={result.total}
+              onChange={(e) =>
+                updateField("total", parseFloat(e.target.value) || 0)
+              }
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3
+                         text-sm text-gray-800 focus:outline-none focus:ring-2
+                         focus:ring-primary-500 focus:border-transparent"
+            />
           </div>
 
           {/* Line items */}

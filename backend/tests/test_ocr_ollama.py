@@ -20,8 +20,6 @@ from src.app.services.ocr import (
 _VALID_OCR_RESPONSE = {
     "merchant_name": "Walmart Supercenter",
     "date": "2026-04-01",
-    "subtotal": 42.50,
-    "tax_amount": 3.40,
     "total_amount": 45.90,
     "currency": "USD",
     "items": [
@@ -310,6 +308,35 @@ def test_auto_claude_and_ollama_fail_tesseract_called(
 # ---------------------------------------------------------------------------
 # category_suggestion field presence
 # ---------------------------------------------------------------------------
+
+
+def test_claude_prompt_excludes_tax_fields():
+    """Receipt OCR no longer extracts tax or subtotal from receipts."""
+    from src.app.services.ocr import _CLAUDE_RECEIPT_PROMPT, _OLLAMA_RECEIPT_PROMPT
+
+    for prompt in (_CLAUDE_RECEIPT_PROMPT, _OLLAMA_RECEIPT_PROMPT):
+        assert "tax_amount" not in prompt
+        assert "subtotal" not in prompt.lower()
+
+
+@patch("src.app.services.ocr.pytesseract.image_to_string")
+def test_tesseract_output_has_no_tax_fields(mock_ocr, tmp_path):
+    """Tesseract OCR no longer returns tax_amount or subtotal keys."""
+    from PIL import Image
+
+    from src.app.services.ocr import extract_receipt_tesseract
+
+    img_path = tmp_path / "receipt.jpg"
+    Image.new("RGB", (100, 100), color="white").save(img_path, "JPEG")
+
+    mock_ocr.return_value = "WALMART\nItem 1  3.99\nTotal  45.90\n03/29/2026\n"
+
+    result = extract_receipt_tesseract(str(img_path))
+    assert "tax_amount" not in result
+    assert "subtotal" not in result
+    assert "total_amount" in result  # still extracted
+    assert "merchant_name" in result  # still extracted
+    assert result["total_amount"] == 45.90
 
 
 @patch("src.app.services.ocr.settings")

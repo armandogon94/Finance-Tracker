@@ -43,9 +43,7 @@ structured data. The receipt may be in English or Spanish (or a mix).
 Extract the following fields:
 - merchant_name: The store or business name
 - date: Transaction date in YYYY-MM-DD format
-- subtotal: Subtotal before tax (number, no currency symbol)
-- tax_amount: Tax / IVA / Impuesto amount (number, no currency symbol)
-- total_amount: Final total (number, no currency symbol)
+- total_amount: Final total the customer actually paid (number, no currency symbol)
 - currency: Three-letter currency code (USD, MXN, EUR, etc.)
 - items: Array of line items, each with {{description, quantity, unit_price}}
 - payment_method: How it was paid (cash/credit/debit/unknown)
@@ -53,7 +51,8 @@ Extract the following fields:
 
 Rules:
 - If a field is unreadable or missing, set it to null.
-- For Spanish receipts: IVA = tax, TOTAL = total, SUBTOTAL = subtotal.
+- total_amount is the amount actually charged after any discounts, gift cards, or rewards. Look for "Total", "Payment", "Amount Due", or the final charge line.
+- For Spanish receipts: TOTAL = total.
 - category_suggestion: pick based on the merchant type and items purchased.
 - Return ONLY valid JSON. No explanation, no markdown fences."""
 
@@ -147,8 +146,6 @@ _OLLAMA_RECEIPT_PROMPT = f"""Extract structured data from this receipt image. Re
 {{
   "merchant_name": "string or null",
   "date": "YYYY-MM-DD or null",
-  "subtotal": number or null,
-  "tax_amount": number or null,
   "total_amount": number or null,
   "currency": "USD/MXN/EUR/etc or null",
   "items": [{{"description": "string", "quantity": number, "unit_price": number}}],
@@ -160,9 +157,7 @@ Rules:
 - Numbers must be plain (no $ or currency symbols).
 - Set unreadable or missing fields to null.
 - total_amount = the amount the customer actually paid. Look for "Total", "Payment", "Amount Due", or "CHARGE" amount. If a gift card or reward was used, the total is the amount after applying it. "Balance" on a gift card line is NOT the total.
-- tax_amount = the dollar amount of sales tax charged. If the tax line shows both a taxable base and a tax amount (e.g. "TAX 8% on $5.28 $0.46"), the tax_amount is the LAST/smaller number ($0.46), not the taxable base. Look for "Tax", "Sales Tax", state names like "NY Tax" or "Nevada".
-- Verify: subtotal + tax_amount should approximately equal total_amount. If they don't, re-read the numbers.
-- For Spanish receipts: IVA = tax, TOTAL = total, SUBTOTAL = subtotal.
+- For Spanish receipts: TOTAL = total.
 - items: include up to 5 items maximum. Skip the rest.
 - category_suggestion: pick based on what was PURCHASED, not just the store name. Use "Groceries" for food and grocery items. Use "Dining" for restaurants and coffee shops. Use "Home" for household/cleaning supplies. Use "Shopping" for clothing, electronics, general merchandise.
 - Return ONLY the JSON object. No explanation, no markdown fences, no extra text."""
@@ -277,12 +272,6 @@ def extract_receipt_ollama(image_base64: str) -> dict[str, Any]:
 _TOTAL_PATTERNS = [
     r"(?:GRAND\s*TOTAL|TOTAL\s*DUE|TOTAL|AMOUNT\s*DUE|MONTO\s*TOTAL|TOTAL\s*A\s*PAGAR)\s*[:$]?\s*\$?\s*([\d,]+\.?\d*)",
 ]
-_TAX_PATTERNS = [
-    r"(?:SALES?\s*TAX|TAX|IVA|IMPUESTO|I\.V\.A\.?)\s*[:$]?\s*\$?\s*([\d,]+\.?\d*)",
-]
-_SUBTOTAL_PATTERNS = [
-    r"(?:SUBTOTAL|SUB\s*TOTAL|SUB-TOTAL)\s*[:$]?\s*\$?\s*([\d,]+\.?\d*)",
-]
 _DATE_PATTERNS = [
     r"(\d{4}[-/]\d{1,2}[-/]\d{1,2})",                     # 2026-03-29
     r"(\d{1,2}[-/]\d{1,2}[-/]\d{4})",                     # 03/29/2026 or 29/03/2026
@@ -338,8 +327,6 @@ def extract_receipt_tesseract(image_path: str) -> dict[str, Any]:
         raw_text = pytesseract.image_to_string(img, lang="eng+spa", config=custom_config)
 
         total = _parse_amount(_search_patterns(raw_text, _TOTAL_PATTERNS))
-        tax = _parse_amount(_search_patterns(raw_text, _TAX_PATTERNS))
-        subtotal = _parse_amount(_search_patterns(raw_text, _SUBTOTAL_PATTERNS))
         date_str = _search_patterns(raw_text, _DATE_PATTERNS)
 
         # Try to extract merchant name from first non-empty line
@@ -349,8 +336,6 @@ def extract_receipt_tesseract(image_path: str) -> dict[str, Any]:
         return {
             "merchant_name": merchant_name,
             "date": date_str,
-            "subtotal": subtotal,
-            "tax_amount": tax,
             "total_amount": total,
             "currency": None,  # Tesseract can't reliably detect currency
             "items": [],  # Line-item parsing is unreliable with Tesseract
