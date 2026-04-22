@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Finance Tracker — Mobile Path Comparison</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #11141b;
+    --ink: #e6e8ee;
+    --ink-dim: #8b92a3;
+    --accent: #7c9cff;
+    --danger: #ff6b6b;
+    --ok: #48d597;
+    --divider: #232834;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 10% -10%, #1b2233 0%, var(--bg) 60%);
+    color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 40px 32px 16px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  header h1 {
+    font-size: 28px;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    color: var(--ink-dim);
+    margin: 0;
+    max-width: 720px;
+  }
+  .stage {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    padding: 24px 32px 72px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) {
+    .stage { grid-template-columns: 1fr; }
+  }
+  .column h2 {
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+  .column .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-left: 6px;
+    vertical-align: 2px;
+  }
+  .tag.rec { background: rgba(72, 213, 151, .15); color: var(--ok); }
+  .tag.mid { background: rgba(124, 156, 255, .15); color: var(--accent); }
+  .tag.heavy { background: rgba(255, 107, 107, .15); color: var(--danger); }
+  .column .blurb {
+    color: var(--ink-dim);
+    font-size: 12px;
+    margin: 2px 0 14px;
+    min-height: 34px;
+  }
+
+  /* ─── iPhone frame ─────────────────────────────────────────────── */
+  .phone {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    aspect-ratio: 9 / 19.5;
+    border-radius: 42px;
+    padding: 12px;
+    background: #0e1016;
+    border: 1px solid #1f232c;
+    box-shadow:
+      0 0 0 6px #05070b,
+      0 30px 60px -20px rgba(0,0,0,.7),
+      inset 0 0 0 1px rgba(255,255,255,.02);
+    position: relative;
+  }
+  .phone::after {
+    content: "";
+    position: absolute;
+    top: 16px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 28px;
+    background: #05070b;
+    border-radius: 18px;
+  }
+  .screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .status-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 46px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 28px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 30;
+  }
+  .status-bar .l, .status-bar .r {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ─── CAPACITOR: webview = exact web UI ─────────────────────────── */
+  .cap .screen {
+    background: linear-gradient(180deg, #ffffff 0%, #f6f7fb 100%);
+    color: #111827;
+  }
+  .cap .status-bar { color: #111827; }
+  .cap .app-body {
+    padding: 56px 16px 84px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .cap .cap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .cap .cap-header h3 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .cap .cap-header span { color: #6b7280; font-size: 12px; }
+
+  .cap .scan-btn {
+    background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    border-radius: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 18px -8px rgba(79,70,229,.6);
+  }
+
+  .cap .review {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .cap .review .row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .cap .review .row label { font-size: 11px; color: #6b7280; font-weight: 500; }
+  .cap .review .row .val {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .cap .review .confirm {
+    background: #4f46e5;
+    color: white;
+    border-radius: 12px;
+    text-align: center;
+    padding: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .cap .tabbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 68px;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    padding: 8px 14px 16px;
+    justify-content: space-around;
+    z-index: 20;
+  }
+  .cap .tabbar .tab {
+    flex: 1; text-align: center;
+    font-size: 10px; color: #6b7280;
+  }
+  .cap .tabbar .tab.active { color: #4f46e5; font-weight: 700; }
+  .cap .tabbar .dot {
+    width: 22px; height: 22px; margin: 0 auto 4px;
+    border-radius: 6px;
+    background: #e5e7eb;
+  }
+  .cap .tabbar .tab.active .dot { background: #c7d2fe; }
+
+  /* ─── EXPO / React Native: native controls ──────────────────────── */
+  .rn .screen {
+    background: #fafafa;
+    color: #111;
+  }
+  .rn .status-bar { color: #111; }
+  .rn .rn-nav {
+    position: absolute; top: 46px; left: 0; right: 0;
+    padding: 8px 16px 12px;
+    display: flex; align-items: center;
+    border-bottom: 1px solid #eee;
+    background: rgba(250,250,250,.96);
+    backdrop-filter: blur(20px);
+    z-index: 25;
+  }
+  .rn .rn-nav .back {
+    color: #007aff; font-size: 16px; font-weight: 400;
+  }
+  .rn .rn-nav .title {
+    flex: 1; text-align: center; font-weight: 600; font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+  .rn .rn-nav .spacer { width: 40px; }
+  .rn .app-body {
+    padding: 96px 0 84px;
+    flex: 1;
+  }
+  .rn .camera-view {
+    margin: 0 16px 16px;
+    aspect-ratio: 3/4;
+    border-radius: 18px;
+    background:
+      radial-gradient(120% 80% at 50% 40%, #3a4252 0%, #11151c 70%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0 2px, transparent 2px 8px);
+    border: 1px solid #2a2f3a;
+    position: relative;
+    overflow: hidden;
+  }
+  .rn .camera-view .frame {
+    position: absolute; top: 14%; left: 10%; right: 10%; bottom: 14%;
+    border: 2px solid rgba(255,255,255,.85);
+    border-radius: 10px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.28) inset;
+  }
+  .rn .camera-view .frame::before, .rn .camera-view .frame::after {
+    content: "";
+    position: absolute;
+    width: 14px; height: 14px;
+    border: 2px solid #48d597;
+  }
+  .rn .camera-view .frame::before {
+    top: -1px; left: -1px;
+    border-right: none; border-bottom: none;
+    border-top-left-radius: 4px;
+  }
+  .rn .camera-view .frame::after {
+    bottom: -1px; right: -1px;
+    border-left: none; border-top: none;
+    border-bottom-right-radius: 4px;
+  }
+  .rn .camera-view .hint {
+    position: absolute;
+    bottom: 16px; left: 0; right: 0;
+    text-align: center;
+    color: rgba(255,255,255,.85);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .rn .shutter-row {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 12px 24px 20px;
+  }
+  .rn .shutter-row .side {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: #fff; border: 1px solid #e5e7eb;
+  }
+  .rn .shutter-btn {
+    width: 72px; height: 72px; border-radius: 999px;
+    background: #fff;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 3px #111;
+    position: relative;
+  }
+  .rn .recent-row {
+    padding: 0 16px;
+    display: flex; gap: 8px;
+    overflow-x: hidden;
+  }
+  .rn .recent-row .chip {
+    flex: 0 0 64px; aspect-ratio: 1;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fde68a, #fca5a5);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px -2px rgba(0,0,0,.2);
+  }
+  .rn .tabbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 84px;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(20px);
+    border-top: 0.5px solid #e5e7eb;
+    display: flex;
+    padding: 10px 0 24px;
+    z-index: 20;
+  }
+  .rn .tabbar .tab {
+    flex: 1; text-align: center; font-size: 10px;
+    color: #8e8e93;
+  }
+  .rn .tabbar .tab.active { color: #007aff; }
+  .rn .tabbar .icon {
+    width: 24px; height: 24px; margin: 0 auto 4px;
+    border-radius: 4px;
+    background: #8e8e93;
+    -webkit-mask: var(--mask) center/24px no-repeat;
+            mask: var(--mask) center/24px no-repeat;
+  }
+  .rn .tabbar .tab.active .icon { background: #007aff; }
+
+  /* ─── SwiftUI: iOS 26 Liquid Glass ──────────────────────────────── */
+  .sw .screen {
+    background:
+      radial-gradient(100% 60% at 10% 10%, #2a3f7a 0%, transparent 60%),
+      radial-gradient(80% 60% at 90% 0%, #7c3aed 0%, transparent 50%),
+      linear-gradient(180deg, #0c1120 0%, #0a0d17 100%);
+    color: #f5f7ff;
+  }
+  .sw .status-bar { color: #fff; }
+  .sw .app-body {
+    padding: 56px 16px 110px;
+    flex: 1;
+  }
+  .sw .sw-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 8px 0 2px;
+  }
+  .sw .sw-subtitle {
+    color: rgba(255,255,255,.6);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .sw .glass-card {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.04) 100%);
+    backdrop-filter: blur(30px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 22px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.15),
+      0 20px 40px -20px rgba(0,0,0,.6);
+  }
+  .sw .glass-card .label {
+    font-size: 11px;
+    color: rgba(255,255,255,.55);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .sw .glass-card .total {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .sw .glass-card .meta {
+    margin-top: 6px;
+    color: rgba(255,255,255,.7);
+    font-size: 13px;
+  }
+  .sw .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sw .mini { padding: 12px; }
+  .sw .mini .k { font-size: 10px; color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sw .mini .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+
+  .sw .primary-pill {
+    margin-top: 6px;
+    background: linear-gradient(180deg, #ffffff 0%, #e8eaf3 100%);
+    color: #0c1120;
+    border-radius: 16px;
+    padding: 13px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 14px 30px -14px rgba(255,255,255,.35);
+  }
+  .sw .faceid {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,.55);
+    font-size: 12px;
+    justify-content: center;
+  }
+  .sw .dock {
+    position: absolute;
+    bottom: 16px;
+    left: 16px; right: 16px;
+    height: 68px;
+    background: rgba(255,255,255,.08);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 30px;
+    padding: 10px 18px 14px;
+    display: flex;
+    justify-content: space-around;
+    z-index: 20;
+  }
+  .sw .dock .tab {
+    flex: 1; text-align: center; font-size: 10px;
+    color: rgba(255,255,255,.55);
+  }
+  .sw .dock .tab.active { color: #fff; }
+  .sw .dock .icon {
+    width: 26px; height: 26px; margin: 0 auto 4px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.18);
+  }
+  .sw .dock .tab.active .icon {
+    background: linear-gradient(135deg, #7c9cff, #c4b5fd);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.2), 0 6px 14px -4px rgba(124,156,255,.5);
+  }
+
+  /* ─── Feature matrix table ─────────────────────────────────── */
+  .matrix {
+    max-width: 1500px;
+    margin: 0 auto 60px;
+    padding: 0 32px;
+  }
+  .matrix h2 {
+    font-size: 20px;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+  .matrix table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--divider);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .matrix th, .matrix td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--divider);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .matrix th {
+    background: rgba(255,255,255,.02);
+    font-weight: 600;
+    color: var(--ink-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .matrix tr:last-child td { border-bottom: none; }
+  .matrix td:first-child { color: var(--ink-dim); width: 200px; }
+  .matrix .good { color: var(--ok); font-weight: 600; }
+  .matrix .bad { color: var(--danger); font-weight: 600; }
+  .matrix .meh { color: var(--accent); font-weight: 600; }
+
+  footer {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 16px 32px 60px;
+    color: var(--ink-dim);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Finance Tracker — Mobile Path Comparison</h1>
+  <p>Same screen (Receipt Scan &amp; confirm), three different stacks. Built to show the actual <em>visual &amp; interaction</em> difference between wrapping your existing Next.js UI (Capacitor), rebuilding with native-feeling cross-platform primitives (React Native / Expo), and going fully native with iOS 26 Liquid Glass (SwiftUI).</p>
+</header>
+
+<section class="stage">
+
+  <!-- CAPACITOR -->
+  <div class="column cap">
+    <h2>Path A · Capacitor <span class="tag rec">recommended</span></h2>
+    <div class="blurb">Your existing Next.js UI inside a native shell. Pixel-identical to the web app.</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="status-bar">
+          <div class="l">9:41</div>
+          <div class="r">100%</div>
+        </div>
+        <div class="app-body">
+          <div class="cap-header">
+            <h3>Scan Receipt</h3>
+            <span>Dunkin&#39;</span>
+          </div>
+          <div class="scan-btn">📷 Retake photo</div>
+          <div class="review">
+            <div class="row">
+              <label>Merchant</label>
+              <div class="val">Dunkin'</div>
+            </div>
+            <div class="row">
+              <label>Date</label>
+              <div class="val">2026-04-22</div>
+            </div>
+            <div class="row">
+              <label>Total</label>
+              <div class="val">$23.15</div>
+            </div>
+            <div class="row">
+              <label>Category</label>
+              <div class="val">Dining</div>
+            </div>
+            <div class="confirm">Confirm &amp; Save</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><div class="dot"></div>Home</div>
+          <div class="tab active"><div class="dot"></div>Scan</div>
+          <div class="tab"><div class="dot"></div>Chat</div>
+          <div class="tab"><div class="dot"></div>Debt</div>
+          <div class="tab"><div class="dot"></div>More</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REACT NATIVE / EXPO -->
+  <div class="column rn">
+    <h2>Path B · Expo / React Native <span class="tag mid">medium effort</span></h2>
+    <div class="blurb">Native iOS controls &amp; a real camera preview. Proper viewfinder, haptics, shutter button.</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="status-bar">
+          <div class="l">9:41</div>
+          <div class="r">100%</div>
+        </div>
+        <div class="rn-nav">
+          <div class="back">‹ Back</div>
+          <div class="title">Scan Receipt</div>
+          <div class="spacer"></div>
+        </div>
+        <div class="app-body">
+          <div class="camera-view">
+            <div class="frame"></div>
+            <div class="hint">Align the receipt inside the frame</div>
+          </div>
+          <div class="shutter-row">
+            <div class="side"></div>
+            <div class="shutter-btn"></div>
+            <div class="side"></div>
+          </div>
+          <div class="recent-row">
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><div class="icon"></div>Home</div>
+          <div class="tab active"><div class="icon"></div>Scan</div>
+          <div class="tab"><div class="icon"></div>Chat</div>
+          <div class="tab"><div class="icon"></div>Debt</div>
+          <div class="tab"><div class="icon"></div>More</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SWIFTUI -->
+  <div class="column sw">
+    <h2>SwiftUI · Liquid Glass <span class="tag heavy">heavy lift</span></h2>
+    <div class="blurb">iOS 26 Liquid Glass materials, native haptics, widgets, Face ID, Siri shortcuts.</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="status-bar">
+          <div class="l">9:41</div>
+          <div class="r">100%</div>
+        </div>
+        <div class="app-body">
+          <div class="sw-title">Dunkin&#39;</div>
+          <div class="sw-subtitle">Scanned just now · North Bergen</div>
+
+          <div class="glass-card">
+            <div class="label">Total</div>
+            <div class="total">$23.15</div>
+            <div class="meta">Apr 22, 2026 · Cash payment</div>
+          </div>
+
+          <div class="row2">
+            <div class="glass-card mini">
+              <div class="k">Category</div>
+              <div class="v">🍽 Dining</div>
+            </div>
+            <div class="glass-card mini">
+              <div class="k">Items</div>
+              <div class="v">4 lines</div>
+            </div>
+          </div>
+
+          <div class="primary-pill">Confirm &amp; Save</div>
+
+          <div class="faceid">
+            <span style="display:inline-block;width:14px;height:14px;border:1.5px solid currentColor;border-radius:4px;"></span>
+            Unlocked with Face ID
+          </div>
+        </div>
+        <div class="dock">
+          <div class="tab"><div class="icon"></div>Home</div>
+          <div class="tab active"><div class="icon"></div>Scan</div>
+          <div class="tab"><div class="icon"></div>Chat</div>
+          <div class="tab"><div class="icon"></div>Debt</div>
+          <div class="tab"><div class="icon"></div>More</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<section class="matrix">
+  <h2>Side-by-side, in the dimensions that matter for <em>this</em> app</h2>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>A · Capacitor</th>
+        <th>B · Expo / React Native</th>
+        <th>SwiftUI native</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Visual feel</td>
+        <td>Identical to the web app — same Tailwind + Shadcn look.</td>
+        <td>Distinctly native iOS: translucent nav bars, large titles, tab bar blurs.</td>
+        <td>iOS 26 Liquid Glass: true depth, translucent docks, parallax, widgets.</td>
+      </tr>
+      <tr>
+        <td>Receipt capture</td>
+        <td>Native camera sheet via <code>@capacitor/camera</code>. Solid, not artful.</td>
+        <td class="good">Real viewfinder with overlay guides, haptics on capture, ML-Kit edge detection.</td>
+        <td class="good">Live <code>AVFoundation</code> capture with frame detection, document scanner.</td>
+      </tr>
+      <tr>
+        <td>Effort (first shipped build)</td>
+        <td class="good">~1 week</td>
+        <td>4–6 weeks</td>
+        <td class="bad">8–12 weeks</td>
+      </tr>
+      <tr>
+        <td>Code reuse with web</td>
+        <td class="good">~100% of UI + state</td>
+        <td>~30% (types, business logic like <code>debt-math.ts</code>)</td>
+        <td class="bad">~5% (API contract only)</td>
+      </tr>
+      <tr>
+        <td>Ongoing maintenance</td>
+        <td class="good">One codebase</td>
+        <td>Two codebases (web + RN)</td>
+        <td class="bad">Two codebases (web + Swift), iOS-only</td>
+      </tr>
+      <tr>
+        <td>iOS widgets / Siri / Shortcuts</td>
+        <td>Limited (via plugins)</td>
+        <td>Via native modules — doable, not first-class</td>
+        <td class="good">First-class — WidgetKit, App Intents, Live Activities</td>
+      </tr>
+      <tr>
+        <td>Face ID / biometrics</td>
+        <td class="good">One plugin away</td>
+        <td class="good">Built-in</td>
+        <td class="good">Built-in</td>
+      </tr>
+      <tr>
+        <td>Push notifications (budget alerts)</td>
+        <td class="good">Plugin</td>
+        <td class="good">Built-in (Expo)</td>
+        <td class="good">Built-in</td>
+      </tr>
+      <tr>
+        <td>App Store approval risk</td>
+        <td>Low — Apple accepts webview apps that feel app-like</td>
+        <td class="good">Very low</td>
+        <td class="good">Very low</td>
+      </tr>
+      <tr>
+        <td>Apple Developer fee</td>
+        <td>$99 / year</td>
+        <td>$99 / year</td>
+        <td>$99 / year</td>
+      </tr>
+      <tr>
+        <td>Backend changes needed</td>
+        <td class="good">None — uses existing <code>/api/v1/*</code></td>
+        <td class="good">None</td>
+        <td class="good">None</td>
+      </tr>
+      <tr>
+        <td>Best for you if…</td>
+        <td><strong>You want it on your phone this month.</strong> Perfect for a 2-user family app.</td>
+        <td>You want a premium-feeling shared iOS+Android app and can spare a month.</td>
+        <td>You're deeply committed to iOS and want widgets/Siri as first-class features.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  Mockups are hand-drawn CSS approximations — the real builds inherit your actual data, copy, colors, and component library.
+</footer>
+
+</body>
+</html>

@@ -261,21 +261,21 @@ class ApiClient {
     return this.request<any>(`/api/v1/debt/strategies?monthly_budget=${monthlyBudget}`);
   }
 
-  // Analytics
+  // Analytics (backend returns wrapped objects, not bare arrays)
   async getAnalyticsDaily(startDate: string, endDate: string) {
-    return this.request<any[]>(
+    return this.request<{ data: any[]; start_date: string; end_date: string }>(
       `/api/v1/analytics/daily?start_date=${startDate}&end_date=${endDate}`
     );
   }
 
   async getAnalyticsByCategory(startDate: string, endDate: string) {
-    return this.request<any[]>(
+    return this.request<{ data: any[]; start_date: string; end_date: string }>(
       `/api/v1/analytics/by-category?start_date=${startDate}&end_date=${endDate}`
     );
   }
 
   async getBudgetStatus() {
-    return this.request<any[]>("/api/v1/analytics/budget-status");
+    return this.request<{ categories: any[] } | any[]>("/api/v1/analytics/budget-status");
   }
 
   // Admin

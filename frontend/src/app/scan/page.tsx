@@ -31,7 +31,7 @@ type PageView = "camera" | "uploading" | "queued" | "queue-list";
 
 export default function ScanPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
