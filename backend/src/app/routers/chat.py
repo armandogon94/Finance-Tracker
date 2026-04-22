@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.database import get_db
 from src.app.dependencies.auth import get_current_user
+from src.app.dependencies.rate_limit import rate_limit
 from src.app.models.chat import ChatConversation, ChatMessage
 from src.app.models.user import User
 from src.app.schemas.chat import (
@@ -182,14 +183,23 @@ async def list_messages(
     )
 
 
-@router.post("/conversations/{conversation_id}/messages")
+_chat_send_limit = rate_limit(max_requests=20, window_seconds=60.0, bucket="chat_send")
+
+
+@router.post(
+    "/conversations/{conversation_id}/messages",
+    dependencies=[Depends(_chat_send_limit)],
+)
 async def send_message(
     conversation_id: uuid.UUID,
     data: ChatMessageCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Send a message and stream the AI response via SSE."""
+    """Send a message and stream the AI response via SSE.
+
+    Rate-limited to 20 messages per minute per user to cap Claude API spend.
+    """
     # Verify ownership
     conv_result = await db.execute(
         select(ChatConversation).where(

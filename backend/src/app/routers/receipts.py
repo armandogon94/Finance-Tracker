@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.app.config import settings
 from src.app.database import get_db
 from src.app.dependencies.auth import get_current_user
+from src.app.dependencies.rate_limit import rate_limit
 from src.app.models.category import Category
 from src.app.models.expense import Expense
 from src.app.models.receipt import PendingReceipt, ReceiptArchive
@@ -21,11 +22,13 @@ router = APIRouter(prefix="/api/v1/receipts", tags=["receipts"])
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic"}
 
+_receipt_scan_limit = rate_limit(max_requests=2, window_seconds=10.0, bucket="receipt_scan")
+
 
 # ─── Scan receipt image ─────────────────────────────────────────────────────
 
 
-@router.post("/scan")
+@router.post("/scan", dependencies=[Depends(_receipt_scan_limit)])
 async def scan_receipt(
     file: UploadFile,
     current_user: User = Depends(get_current_user),
