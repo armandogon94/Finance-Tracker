@@ -33,14 +33,14 @@ class TestTelegramLink:
 
 class TestTelegramVerify:
     async def test_verify_valid_code(
-        self, auth_client: AsyncClient, client: AsyncClient, test_user: User
+        self, auth_client: AsyncClient, bot_client: AsyncClient, test_user: User
     ):
         # Generate code via authenticated endpoint
         gen_resp = await auth_client.post("/api/v1/telegram/link")
         code = gen_resp.json()["code"]
 
-        # Verify via unauthenticated endpoint (as the bot would)
-        verify_resp = await client.post("/api/v1/telegram/verify", json={
+        # Verify via bot-authenticated endpoint (bot client sends X-Bot-Secret)
+        verify_resp = await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": code,
             "telegram_user_id": 123456789,
             "telegram_username": "testuser",
@@ -50,15 +50,15 @@ class TestTelegramVerify:
         assert data["success"] is True
         assert data["user_id"] == str(test_user.id)
 
-    async def test_verify_invalid_code(self, client: AsyncClient):
-        resp = await client.post("/api/v1/telegram/verify", json={
+    async def test_verify_invalid_code(self, bot_client: AsyncClient):
+        resp = await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": "INVALID123",
             "telegram_user_id": 123456789,
         })
         assert resp.status_code == 404
 
     async def test_verify_expired_code(
-        self, auth_client: AsyncClient, client: AsyncClient, db_session: AsyncSession, test_user: User
+        self, auth_client: AsyncClient, bot_client: AsyncClient, db_session: AsyncSession, test_user: User
     ):
         # Create an expired link directly in DB
         link = TelegramLink(
@@ -70,19 +70,19 @@ class TestTelegramVerify:
         db_session.add(link)
         await db_session.commit()
 
-        resp = await client.post("/api/v1/telegram/verify", json={
+        resp = await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": "EXPIRED1",
             "telegram_user_id": 123456789,
         })
         assert resp.status_code == 410
 
     async def test_verify_duplicate_telegram_id(
-        self, auth_client: AsyncClient, client: AsyncClient, db_session: AsyncSession, test_user: User
+        self, auth_client: AsyncClient, bot_client: AsyncClient, db_session: AsyncSession, test_user: User
     ):
         # First link
         gen_resp = await auth_client.post("/api/v1/telegram/link")
         code1 = gen_resp.json()["code"]
-        await client.post("/api/v1/telegram/verify", json={
+        await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": code1,
             "telegram_user_id": 999888777,
             "telegram_username": "user1",
@@ -91,37 +91,58 @@ class TestTelegramVerify:
         # Try to link same telegram_id to another code
         gen_resp2 = await auth_client.post("/api/v1/telegram/link")
         code2 = gen_resp2.json()["code"]
-        resp = await client.post("/api/v1/telegram/verify", json={
+        resp = await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": code2,
             "telegram_user_id": 999888777,
             "telegram_username": "user1",
         })
         assert resp.status_code == 409
 
+    async def test_verify_missing_secret_returns_401(self, client: AsyncClient):
+        """A request without X-Bot-Secret is rejected even with a valid code."""
+        resp = await client.post("/api/v1/telegram/verify", json={
+            "link_code": "WHATEVER",
+            "telegram_user_id": 123,
+        })
+        assert resp.status_code == 401
+
+    async def test_verify_wrong_secret_returns_401(self, client: AsyncClient):
+        """A request with the wrong X-Bot-Secret is rejected."""
+        resp = await client.post(
+            "/api/v1/telegram/verify",
+            json={"link_code": "WHATEVER", "telegram_user_id": 123},
+            headers={"X-Bot-Secret": "this-is-not-the-secret"},
+        )
+        assert resp.status_code == 401
+
 
 class TestTelegramLookup:
     async def test_lookup_linked_user(
-        self, auth_client: AsyncClient, client: AsyncClient
+        self, auth_client: AsyncClient, bot_client: AsyncClient
     ):
         # Link an account
         gen_resp = await auth_client.post("/api/v1/telegram/link")
         code = gen_resp.json()["code"]
-        await client.post("/api/v1/telegram/verify", json={
+        await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": code,
             "telegram_user_id": 111222333,
             "telegram_username": "linked_user",
         })
 
-        # Look up
-        resp = await client.get("/api/v1/telegram/user/111222333")
+        # Look up via bot-authenticated client
+        resp = await bot_client.get("/api/v1/telegram/user/111222333")
         assert resp.status_code == 200
         data = resp.json()
         assert data["linked"] is True
         assert data["telegram_username"] == "linked_user"
 
-    async def test_lookup_unknown_user(self, client: AsyncClient):
-        resp = await client.get("/api/v1/telegram/user/000000000")
+    async def test_lookup_unknown_user(self, bot_client: AsyncClient):
+        resp = await bot_client.get("/api/v1/telegram/user/000000000")
         assert resp.status_code == 404
+
+    async def test_lookup_without_secret_returns_401(self, client: AsyncClient):
+        resp = await client.get("/api/v1/telegram/user/111222333")
+        assert resp.status_code == 401
 
 
 class TestTelegramStatus:
@@ -130,10 +151,10 @@ class TestTelegramStatus:
         assert resp.status_code == 200
         assert resp.json()["linked"] is False
 
-    async def test_status_linked(self, auth_client: AsyncClient, client: AsyncClient):
+    async def test_status_linked(self, auth_client: AsyncClient, bot_client: AsyncClient):
         gen_resp = await auth_client.post("/api/v1/telegram/link")
         code = gen_resp.json()["code"]
-        await client.post("/api/v1/telegram/verify", json={
+        await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": code,
             "telegram_user_id": 444555666,
             "telegram_username": "mybot",
@@ -147,11 +168,11 @@ class TestTelegramStatus:
 
 
 class TestTelegramUnlink:
-    async def test_unlink(self, auth_client: AsyncClient, client: AsyncClient):
+    async def test_unlink(self, auth_client: AsyncClient, bot_client: AsyncClient):
         # Link first
         gen_resp = await auth_client.post("/api/v1/telegram/link")
         code = gen_resp.json()["code"]
-        await client.post("/api/v1/telegram/verify", json={
+        await bot_client.post("/api/v1/telegram/verify", json={
             "link_code": code,
             "telegram_user_id": 777888999,
             "telegram_username": "unlink_me",

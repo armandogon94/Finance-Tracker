@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy import select
@@ -65,6 +65,29 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
     return user
+
+
+async def require_bot_secret(
+    x_bot_secret: str | None = Header(default=None, alias="X-Bot-Secret"),
+) -> None:
+    """Guard internal endpoints that the Telegram bot calls.
+
+    The bot must send the shared ``X-Bot-Secret`` header (configured via the
+    ``TELEGRAM_BOT_INTERNAL_SECRET`` env var) on every call. If the secret
+    isn't configured, the endpoint is unreachable — refusing by default is
+    safer than silently allowing anonymous calls in misconfigured deploys.
+    """
+    expected = settings.telegram_bot_internal_secret
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Bot integration not configured on this server",
+        )
+    if not x_bot_secret or not secrets.compare_digest(x_bot_secret, expected):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing bot secret",
+        )
 
 
 async def get_current_superuser(

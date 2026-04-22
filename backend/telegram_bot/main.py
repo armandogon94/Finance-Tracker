@@ -35,14 +35,22 @@ logger = logging.getLogger(__name__)
 # Backend API base URL (internal Docker network)
 API_BASE = os.getenv("API_BASE_URL", "http://finance-api:8002")
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+BOT_INTERNAL_SECRET = os.getenv("TELEGRAM_BOT_INTERNAL_SECRET", "")
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
+def _bot_headers() -> dict[str, str]:
+    """Header bundle for internal API calls. Includes the shared secret if set."""
+    return {"X-Bot-Secret": BOT_INTERNAL_SECRET} if BOT_INTERNAL_SECRET else {}
+
+
 async def api_get(path: str) -> dict | None:
-    async with httpx.AsyncClient(base_url=API_BASE, timeout=30) as client:
+    async with httpx.AsyncClient(
+        base_url=API_BASE, timeout=30, headers=_bot_headers()
+    ) as client:
         resp = await client.get(path)
         if resp.status_code == 200:
             return resp.json()
@@ -50,7 +58,9 @@ async def api_get(path: str) -> dict | None:
 
 
 async def api_post(path: str, json_data: dict) -> dict | None:
-    async with httpx.AsyncClient(base_url=API_BASE, timeout=30) as client:
+    async with httpx.AsyncClient(
+        base_url=API_BASE, timeout=30, headers=_bot_headers()
+    ) as client:
         resp = await client.post(path, json=json_data)
         if resp.status_code in (200, 201):
             return resp.json()

@@ -11,6 +11,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-}
       OCR_MODE: ${OCR_MODE:-auto}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4}
@@ -73,6 +74,7 @@ services:
         condition: service_healthy
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-}
       API_BASE_URL: http://finance-api:8002
       DATABASE_URL: postgresql+asyncpg://postgres:${DB_PASSWORD:-postgres}@postgres:5432/finance_db
     networks:

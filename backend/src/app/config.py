@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str = ""
+    telegram_bot_internal_secret: str = ""  # Shared secret for bot -> API calls
 
     # App
     app_name: str = "Finance Tracker"

@@ -8,10 +8,14 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from src.app.config import settings
 from src.app.database import Base, get_db
 from src.app.dependencies.auth import create_access_token, hash_password
 from src.app.main import app
 from src.app.models.user import User
+
+TEST_BOT_SECRET = "test-bot-secret-not-used-in-prod"
+settings.telegram_bot_internal_secret = TEST_BOT_SECRET
 
 # Shared in-memory SQLite: StaticPool keeps a single connection alive so all
 # async tasks share the same in-memory database.
@@ -118,3 +122,16 @@ async def admin_client(client: AsyncClient, admin_user: User) -> AsyncClient:
     token = create_access_token(admin_user)
     client.headers["Authorization"] = f"Bearer {token}"
     return client
+
+
+@pytest.fixture
+async def bot_client() -> AsyncGenerator[AsyncClient, None]:
+    """Unauthenticated client that sends the internal bot secret header.
+
+    Mirrors how the Telegram bot container talks to the API in production.
+    """
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        ac.headers["X-Bot-Secret"] = TEST_BOT_SECRET
+        yield ac

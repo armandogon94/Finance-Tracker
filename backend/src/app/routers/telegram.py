@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.database import get_db
-from src.app.dependencies.auth import get_current_user
+from src.app.dependencies.auth import get_current_user, require_bot_secret
 from src.app.models.telegram import TelegramLink
 from src.app.models.user import User
 from src.app.schemas.telegram import (
@@ -61,12 +61,19 @@ async def generate_link_code(
     return TelegramLinkResponse(code=code, expires_at=expires_at)
 
 
-@router.post("/verify", response_model=TelegramVerifyResponse)
+@router.post(
+    "/verify",
+    response_model=TelegramVerifyResponse,
+    dependencies=[Depends(require_bot_secret)],
+)
 async def verify_link_code(
     data: TelegramVerifyRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Verify a link code sent from the Telegram bot. Called by the bot, not the web app."""
+    """Verify a link code sent from the Telegram bot. Called by the bot, not the web app.
+
+    Authenticated by the ``X-Bot-Secret`` shared-secret header.
+    """
     result = await db.execute(
         select(TelegramLink).where(
             TelegramLink.link_code == data.link_code,
@@ -110,12 +117,19 @@ async def verify_link_code(
     return TelegramVerifyResponse(success=True, user_id=link.user_id)
 
 
-@router.get("/user/{telegram_user_id}", response_model=TelegramUserResponse)
+@router.get(
+    "/user/{telegram_user_id}",
+    response_model=TelegramUserResponse,
+    dependencies=[Depends(require_bot_secret)],
+)
 async def get_user_by_telegram_id(
     telegram_user_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Look up a Finance Tracker user by their Telegram user ID. Called by the bot."""
+    """Look up a Finance Tracker user by their Telegram user ID. Called by the bot.
+
+    Authenticated by the ``X-Bot-Secret`` shared-secret header.
+    """
     result = await db.execute(
         select(TelegramLink).where(
             TelegramLink.telegram_user_id == telegram_user_id,
