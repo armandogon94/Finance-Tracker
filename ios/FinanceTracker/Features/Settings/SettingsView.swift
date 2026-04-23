@@ -75,10 +75,7 @@ struct SettingsView: View {
             row(icon: "clock", title: "Timezone", value: "America/New York")
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var ocrCard: some View {
@@ -107,10 +104,7 @@ struct SettingsView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var securityCard: some View {
@@ -126,10 +120,7 @@ struct SettingsView: View {
             .tint(theme.accent)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var designPlaygroundLink: some View {
@@ -147,10 +138,7 @@ struct SettingsView: View {
                 Image(systemName: "chevron.right").foregroundStyle(theme.textTertiary)
             }
             .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                    .fill(theme.cardBackground())
-            )
+            .themedCard()
         }
         .buttonStyle(.plain)
     }
@@ -172,10 +160,7 @@ struct SettingsView: View {
             .buttonStyle(.plain)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var exportCard: some View {
@@ -187,10 +172,7 @@ struct SettingsView: View {
             }.buttonStyle(.plain)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var aboutCard: some View {
@@ -202,10 +184,7 @@ struct SettingsView: View {
             Spacer()
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func row(icon: String, title: String, value: String) -> some View {

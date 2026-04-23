@@ -79,24 +79,6 @@ struct LiquidGlassTheme: AppTheme {
 
 // MARK: - Liquid Glass reusable view decorators
 
-/// Shared screen backdrop. Uses the theme's hero gradient for most
-/// designs; swaps in the richer LiquidGlassBackdrop for Liquid Glass.
-struct ThemedBackdrop: View {
-    @Environment(\.appTheme) private var theme
-
-    var body: some View {
-        Group {
-            if theme.id == .liquidGlass {
-                LiquidGlassBackdrop()
-            } else {
-                Rectangle()
-                    .fill(theme.heroGradient())
-                    .ignoresSafeArea()
-            }
-        }
-    }
-}
-
 /// Applies the Liquid Glass full-screen backdrop: deep gradient + soft
 /// radial highlights that feel like light refracting through glass.
 struct LiquidGlassBackdrop: View {

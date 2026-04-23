@@ -15,6 +15,15 @@ final class ThemeStore {
     private let storageKey = "FinanceTracker.selectedTheme"
 
     init() {
+        // Launch-arg override wins over persisted value — used for the
+        // `simctl launch … -theme=<id>` design-comparison flow.
+        for a in ProcessInfo.processInfo.arguments where a.hasPrefix("-theme=") {
+            let raw = String(a.dropFirst("-theme=".count))
+            if let id = ThemeID(rawValue: raw) {
+                apply(id, persist: false)
+                return
+            }
+        }
         if let raw = UserDefaults.standard.string(forKey: storageKey),
            let id = ThemeID(rawValue: raw) {
             apply(id, persist: false)

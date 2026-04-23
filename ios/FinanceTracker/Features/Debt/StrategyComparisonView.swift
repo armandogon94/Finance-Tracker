@@ -46,10 +46,7 @@ struct StrategyComparisonView: View {
                 .font(theme.font.caption).foregroundStyle(theme.textSecondary)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var chartCard: some View {
@@ -73,10 +70,7 @@ struct StrategyComparisonView: View {
             .frame(height: 200)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private struct Pt: Hashable { let month: Int; let remaining: Double }
@@ -116,10 +110,7 @@ struct StrategyComparisonView: View {
                 .font(theme.font.caption).foregroundStyle(theme.textSecondary)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func colorFor(_ name: String) -> Color {

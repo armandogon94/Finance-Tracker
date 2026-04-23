@@ -57,10 +57,7 @@ struct AnalyticsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var dailyChartCard: some View {
@@ -93,10 +90,7 @@ struct AnalyticsView: View {
             .frame(height: 200)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var donutCard: some View {
@@ -128,10 +122,7 @@ struct AnalyticsView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var budgetsCard: some View {
@@ -144,10 +135,7 @@ struct AnalyticsView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func budgetRow(_ cat: Category) -> some View {

@@ -70,15 +70,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .strokeBorder(Color.white.opacity(theme.id == .liquidGlass ? 0.14 : 0.0), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(theme.id == .liquidGlass ? 0.35 : 0.05), radius: 18, y: 10)
+        .themedCard()
     }
 
     // MARK: - Today / Week / Month stat row
@@ -107,10 +99,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card - 4, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard(radius: theme.radii.card - 4)
     }
 
     // MARK: - Recent expenses
@@ -136,10 +125,7 @@ struct HomeView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var quickAddButton: some View {

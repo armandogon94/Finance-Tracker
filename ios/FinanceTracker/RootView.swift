@@ -7,7 +7,7 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(\.appTheme) private var theme
-    @State private var isAuthenticated = false
+    @State private var isAuthenticated = UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth")
     @State private var selectedTab: Tab = .home
 
     var body: some View {

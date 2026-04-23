@@ -55,10 +55,7 @@ struct DebtDashboardView: View {
                 .frame(width: 96, height: 96)
         }
         .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var debtDonut: some View {
@@ -99,10 +96,7 @@ struct DebtDashboardView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func ccRow(_ cc: CreditCard) -> some View {
@@ -128,10 +122,7 @@ struct DebtDashboardView: View {
             }
         }
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card - 8, style: .continuous)
-                .fill(theme.surfaceSecondary)
-        )
+        .themedInnerCard(radius: theme.radii.card - 8)
     }
 
     // MARK: - Loans
@@ -153,10 +144,7 @@ struct DebtDashboardView: View {
             }
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func loanRow(_ loan: Loan) -> some View {
@@ -178,10 +166,7 @@ struct DebtDashboardView: View {
                 .font(theme.font.caption).foregroundStyle(theme.textSecondary)
         }
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card - 8, style: .continuous)
-                .fill(theme.surfaceSecondary)
-        )
+        .themedInnerCard(radius: theme.radii.card - 8)
     }
 
     // MARK: - Strategy link
@@ -204,10 +189,7 @@ struct DebtDashboardView: View {
                 Image(systemName: "chevron.right").foregroundStyle(theme.textTertiary)
             }
             .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                    .fill(theme.cardBackground())
-            )
+            .themedCard()
         }
         .buttonStyle(.plain)
     }

@@ -38,10 +38,7 @@ struct DesignPlaygroundView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func themeCard(for id: ThemeID) -> some View {
@@ -78,10 +75,7 @@ struct DesignPlaygroundView: View {
                 }
             }
             .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                    .fill(theme.cardBackground())
-            )
+            .themedCard()
             .overlay(
                 RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
                     .strokeBorder(isActive ? theme.accent : .clear, lineWidth: 2)

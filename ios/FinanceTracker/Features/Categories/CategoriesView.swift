@@ -66,10 +66,7 @@ private struct CategoryRow: View {
                 .foregroundStyle(theme.textTertiary)
         }
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 }
 

@@ -130,10 +130,7 @@ struct ScanView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                        .fill(theme.cardBackground())
-                )
+                .themedCard()
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -158,10 +155,7 @@ struct ScanView: View {
                     }
                 }
                 .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                        .fill(theme.cardBackground())
-                )
+                .themedCard()
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Items").font(theme.font.captionMedium).tracking(1.2)
@@ -179,10 +173,7 @@ struct ScanView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                        .fill(theme.cardBackground())
-                )
+                .themedCard()
 
                 HStack(spacing: 12) {
                     Button { phase = .capture } label: {

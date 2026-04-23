@@ -64,10 +64,7 @@ struct ExpenseDetailView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
         .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var fieldCard: some View {
@@ -80,10 +77,7 @@ struct ExpenseDetailView: View {
             Divider().opacity(0.15).padding(.horizontal, 16)
             fieldRow("Payment", value: "Credit card")
         }
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private func fieldRow(_ label: String, value: String) -> some View {
@@ -120,10 +114,7 @@ struct ExpenseDetailView: View {
                 )
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                .fill(theme.cardBackground())
-        )
+        .themedCard()
     }
 
     private var actionCard: some View {

@@ -73,7 +73,8 @@ struct ChatView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(theme.surface.opacity(theme.id == .liquidGlass ? 0.5 : 1))
+        .background(.ultraThinMaterial.opacity(theme.id == .liquidGlass ? 0.7 : 0.0))
+        .background(theme.surface)
     }
 
     private var composer: some View {

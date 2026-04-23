@@ -101,10 +101,7 @@ struct ExpensesListView: View {
                 }
             }
             .padding(4)
-            .background(
-                RoundedRectangle(cornerRadius: theme.radii.card, style: .continuous)
-                    .fill(theme.cardBackground())
-            )
+            .themedCard()
         }
         .navigationDestination(for: Expense.self) { ExpenseDetailView(expense: $0) }
     }

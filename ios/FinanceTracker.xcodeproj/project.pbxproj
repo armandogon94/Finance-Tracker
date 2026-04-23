@@ -12,9 +12,12 @@
 		18C47AF43979617544CA3917 /* ThemeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 743927E7B1B96C00A2F1ACC4 /* ThemeStore.swift */; };
 		2142DDC0D980869B2D395771 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5208787BC6D999B1E7DB8205 /* RootView.swift */; };
 		250F036F620AD5154D650C31 /* FinanceTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D18D431A8067CD142B0612CE /* FinanceTrackerApp.swift */; };
+		322D1522D7D7286690F3AB9A /* ThemedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03B91C74C676E5752BE6A6A /* ThemedCard.swift */; };
+		3AE6FFD4AD29A0E08AF3240E /* ThemedBackdrops.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8950276249F69A6978F72A26 /* ThemedBackdrops.swift */; };
 		3E565F34B8B52CCC623DEAAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA0C891F279F02AB1AF112B7 /* Assets.xcassets */; };
 		5E96C510B6C4C4E87FDB036F /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BFF2B2DCC25B9BD4C7F82 /* ScanView.swift */; };
 		5E9C385E3E22FC6C744882CA /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA20579F5DF3B0C1DF99E44 /* AppTheme.swift */; };
+		66BFA6E2A58B62AB58CF84F6 /* CACHEDIR.TAG in Resources */ = {isa = PBXBuildFile; fileRef = B22DE987739DF0F80122787E /* CACHEDIR.TAG */; };
 		6D1033232650A63AD689AB95 /* ExpensesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C85317F6D0603456EBB5BA /* ExpensesListView.swift */; };
 		82C71403FE7EC524DEEBB447 /* DebtDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A339670DAC43D3042A7F2E52 /* DebtDashboardView.swift */; };
 		97F92BE594306CEF87800FB0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E65712F5614940B0FF412 /* HomeView.swift */; };
@@ -44,6 +47,7 @@
 
 /* Begin PBXFileReference section */
 		03C85317F6D0603456EBB5BA /* ExpensesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesListView.swift; sourceTree = "<group>"; };
+		04C118F7944EEDC2B026BFB2 /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
 		1ADE896B846BF60B6FF840B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		2AA20579F5DF3B0C1DF99E44 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		2B0F26161C69290E359D41A1 /* ExpenseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseDetailView.swift; sourceTree = "<group>"; };
@@ -59,10 +63,13 @@
 		732BEDD4234B6D7C030C54A7 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		743927E7B1B96C00A2F1ACC4 /* ThemeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeStore.swift; sourceTree = "<group>"; };
 		757995A4D36A72157916AA04 /* FinanceTracker.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FinanceTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8950276249F69A6978F72A26 /* ThemedBackdrops.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemedBackdrops.swift; sourceTree = "<group>"; };
 		99FA7FDDB884A283749AA1B8 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 		A339670DAC43D3042A7F2E52 /* DebtDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebtDashboardView.swift; sourceTree = "<group>"; };
+		B22DE987739DF0F80122787E /* CACHEDIR.TAG */ = {isa = PBXFileReference; path = CACHEDIR.TAG; sourceTree = "<group>"; };
 		B5B9420E3CB3719CD5FE89A3 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		C82746839E3BFC73F88FDFA9 /* DesignPlaygroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignPlaygroundView.swift; sourceTree = "<group>"; };
+		D03B91C74C676E5752BE6A6A /* ThemedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemedCard.swift; sourceTree = "<group>"; };
 		D18D431A8067CD142B0612CE /* FinanceTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinanceTrackerApp.swift; sourceTree = "<group>"; };
 		D43CA2A4DEC391CB05E19486 /* FinanceTrackerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FinanceTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D80F0EAA3D7A50DE19FEDCF2 /* QuickAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddSheet.swift; sourceTree = "<group>"; };
@@ -140,6 +147,16 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		8855C0B3EAED8CE3232B5132 /* .ruff_cache */ = {
+			isa = PBXGroup;
+			children = (
+				04C118F7944EEDC2B026BFB2 /* .gitignore */,
+				B22DE987739DF0F80122787E /* CACHEDIR.TAG */,
+				BFDCFC1AE4D865317EF34CCF /* 0.15.8 */,
+			);
+			path = .ruff_cache;
+			sourceTree = "<group>";
+		};
 		9340A7D62F4FDACB192DCCFA /* Categories */ = {
 			isa = PBXGroup;
 			children = (
@@ -172,6 +189,13 @@
 			path = Scan;
 			sourceTree = "<group>";
 		};
+		BFDCFC1AE4D865317EF34CCF /* 0.15.8 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = 0.15.8;
+			sourceTree = "<group>";
+		};
 		C311382A5459401252CECA4F /* FinanceTracker */ = {
 			isa = PBXGroup;
 			children = (
@@ -197,6 +221,7 @@
 		E72E8882649D604FDE9EAA2C /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				8855C0B3EAED8CE3232B5132 /* .ruff_cache */,
 				ADC1E80B4D267F4F8834DEFD /* Analytics */,
 				597D27CB91E933DA0A772939 /* Auth */,
 				9340A7D62F4FDACB192DCCFA /* Categories */,
@@ -216,6 +241,8 @@
 				2AA20579F5DF3B0C1DF99E44 /* AppTheme.swift */,
 				6B52869498E2485CE9BE169B /* LiquidGlassTheme.swift */,
 				3786437994196017E04F5CCB /* PlaceholderThemes.swift */,
+				8950276249F69A6978F72A26 /* ThemedBackdrops.swift */,
+				D03B91C74C676E5752BE6A6A /* ThemedCard.swift */,
 				743927E7B1B96C00A2F1ACC4 /* ThemeStore.swift */,
 			);
 			path = Theme;
@@ -330,6 +357,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3E565F34B8B52CCC623DEAAC /* Assets.xcassets in Resources */,
+				66BFA6E2A58B62AB58CF84F6 /* CACHEDIR.TAG in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,6 +389,8 @@
 				B01D3278C6D08E0511C69B09 /* SettingsView.swift in Sources */,
 				CA377ABE0E7E6CE52106E98E /* StrategyComparisonView.swift in Sources */,
 				18C47AF43979617544CA3917 /* ThemeStore.swift in Sources */,
+				3AE6FFD4AD29A0E08AF3240E /* ThemedBackdrops.swift in Sources */,
+				322D1522D7D7286690F3AB9A /* ThemedCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
