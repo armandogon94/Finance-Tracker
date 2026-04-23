@@ -22,10 +22,19 @@ actor APIClient {
     init(
         baseURL: URL = APIConfig.baseURL,
         tokenProvider: (any TokenProvider)? = nil,
-        session: URLSession = .shared
+        session: URLSession? = nil
     ) {
         self.baseURL = baseURL
-        self.session = session
+        // Custom session with a delegate that re-attaches the Authorization
+        // header when URLSession follows a redirect (FastAPI 307s bare paths
+        // into their canonical trailing-slash form; the default delegate
+        // strips auth on redirect for safety).
+        let delegate = RedirectAuthDelegate(tokenProvider: tokenProvider)
+        self.session = session ?? URLSession(
+            configuration: .ephemeral,
+            delegate: delegate,
+            delegateQueue: nil
+        )
         self.tokenProvider = tokenProvider
 
         let dec = JSONDecoder()
@@ -179,6 +188,39 @@ actor APIClient {
         default:
             let detail = extractDetail(from: data)
             throw APIError.server(status: http.statusCode, detail: detail)
+        }
+    }
+
+    // MARK: - Redirect handler
+
+    /// Re-attaches the Authorization header when URLSession follows a
+    /// redirect. Without this, FastAPI's 307 from bare `/foo` → `/foo/`
+    /// strips the bearer token and the target endpoint 401s.
+    final class RedirectAuthDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+        let tokenProvider: (any TokenProvider)?
+        init(tokenProvider: (any TokenProvider)?) { self.tokenProvider = tokenProvider }
+
+        func urlSession(
+            _ session: URLSession,
+            task: URLSessionTask,
+            willPerformHTTPRedirection response: HTTPURLResponse,
+            newRequest request: URLRequest,
+            completionHandler: @escaping (URLRequest?) -> Void
+        ) {
+            // Only re-attach for same-host redirects.
+            guard let originalHost = task.originalRequest?.url?.host,
+                  let newHost = request.url?.host,
+                  originalHost == newHost
+            else {
+                completionHandler(request)
+                return
+            }
+            var forwarded = request
+            if let token = tokenProvider?.currentAccessToken(),
+               forwarded.value(forHTTPHeaderField: "Authorization") == nil {
+                forwarded.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            completionHandler(forwarded)
         }
     }
 

@@ -10,23 +10,26 @@ struct HomeView: View {
     @Environment(ExpensesService.self) private var svc
     @State private var showQuickAdd = false
 
-    /// While the service is loading its first payload (or the user is
-    /// in -skipAuth mode for design review), render MockData so the
-    /// screen is never an empty state during the theme-comparison phase.
+    /// If the service has loaded real data (even an empty list) we render
+    /// that. MockData only shows when the user is in -skipAuth mode so
+    /// design-comparison screenshots aren't empty.
+    private var useMock: Bool {
+        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && svc.state == .idle
+    }
     private var displayExpenses: [Expense] {
-        svc.expenses.isEmpty ? MockData.expenses : svc.expenses
+        useMock ? MockData.expenses : svc.expenses
     }
     private var displayTotalMonth: Double {
-        svc.expenses.isEmpty ? MockData.totalThisMonth : svc.totalThisMonth
+        useMock ? MockData.totalThisMonth : svc.totalThisMonth
     }
     private var displayTotalToday: Double {
-        svc.expenses.isEmpty ? MockData.totalToday : svc.totalToday
+        useMock ? MockData.totalToday : svc.totalToday
     }
     private var displayTotalWeek: Double {
-        svc.expenses.isEmpty ? MockData.totalThisWeek : svc.totalThisWeek
+        useMock ? MockData.totalThisWeek : svc.totalThisWeek
     }
     private var displayCategories: [Category] {
-        svc.expenses.isEmpty ? MockData.categories : svc.categories
+        useMock ? MockData.categories : svc.categories
     }
     private func lookup(_ id: UUID?) -> Category? {
         guard let id else { return nil }

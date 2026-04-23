@@ -68,13 +68,13 @@ struct CategoryDTO: Decodable, Sendable {
     let color: String?
     let monthlyBudget: Double?
     let isHidden: Bool
-    let displayOrder: Int
+    let sortOrder: Int
 
     enum CodingKeys: String, CodingKey {
         case id, name, icon, color
         case monthlyBudget = "monthly_budget"
         case isHidden = "is_hidden"
-        case displayOrder = "display_order"
+        case sortOrder = "sort_order"
     }
 }
 

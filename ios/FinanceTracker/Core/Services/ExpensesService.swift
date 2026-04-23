@@ -29,8 +29,11 @@ final class ExpensesService {
 
     func loadAll() async {
         state = .loading
+        // Trailing slashes matter: FastAPI 307-redirects the non-slash form,
+        // and URLSession drops the Authorization header on redirect, which
+        // then 401s the follow-up.
         async let expensesTask: ExpenseListResponseDTO = api.get("/api/v1/expenses/")
-        async let categoriesTask: [CategoryDTO] = api.get("/api/v1/categories")
+        async let categoriesTask: [CategoryDTO] = api.get("/api/v1/categories/")
 
         do {
             let (expensesResp, catDTOs) = try await (expensesTask, categoriesTask)
@@ -93,7 +96,9 @@ final class ExpensesService {
         )
 
         do {
-            let created: ExpenseDTO = try await api.post("/api/v1/expenses", body: body)
+            // Trailing slash matters — FastAPI returns 307 without it on POST,
+            // and URLSession drops the body when following redirects.
+            let created: ExpenseDTO = try await api.post("/api/v1/expenses/", body: body)
             let expense = Expense(
                 id: created.id,
                 amount: created.amount,
