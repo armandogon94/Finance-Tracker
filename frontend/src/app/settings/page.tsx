@@ -323,8 +323,8 @@ export default function SettingsPage() {
           <div className="space-y-2">
             {(
               [
-                { value: "auto", label: "Auto", desc: "Best available method" },
-                { value: "cloud", label: "Cloud Only", desc: "Google Vision / AWS Textract" },
+                { value: "auto", label: "Auto", desc: "Claude, then Ollama, then Tesseract" },
+                { value: "cloud", label: "Cloud Only", desc: "Claude Vision (Haiku 4.5)" },
                 { value: "offline", label: "Offline Only", desc: "On-device Tesseract" },
                 { value: "manual", label: "Manual", desc: "Type amounts manually" },
               ] as { value: OcrPreference; label: string; desc: string }[]

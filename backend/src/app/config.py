@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/finance_db"
+    db_pool_size: int = 20
+    db_max_overflow: int = 10
 
     # JWT
     jwt_secret: str = "change-me-in-production"

@@ -27,10 +27,12 @@ logger = logging.getLogger(__name__)
 # Shared constants
 # ---------------------------------------------------------------------------
 
+# Must match the names seeded in backend/src/app/routers/auth.py
+# DEFAULT_CATEGORIES exactly — otherwise the OCR category_suggestion can
+# never auto-resolve to a real category_id on the frontend.
 _CATEGORY_LIST = (
-    "Groceries, Dining, Transportation, Entertainment, Shopping, "
-    "Healthcare, Utilities, Gas/Fuel, Travel, Education, "
-    "Personal Care, Home, Insurance, Subscriptions, Other"
+    "Food & Dining, Transportation, Shopping, Entertainment, "
+    "Bills & Utilities, Health, Education, Personal, Other"
 )
 
 # ---------------------------------------------------------------------------

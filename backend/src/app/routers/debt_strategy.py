@@ -9,7 +9,7 @@ from src.app.models.debt_payment import DebtSnapshot
 from src.app.models.loan import Loan
 from src.app.models.user import User
 from src.app.schemas.debt import StrategyComparison
-from src.app.services.debt_strategies import compare_strategies
+from src.app.services.debt_strategies import compare_strategies_schema
 
 router = APIRouter(prefix="/api/v1/debt", tags=["debt"])
 
@@ -152,7 +152,7 @@ async def get_payoff_strategies(
             ),
         )
 
-    comparison = compare_strategies(debts=debts, monthly_budget=monthly_budget)
+    comparison = compare_strategies_schema(debts=debts, monthly_budget=monthly_budget)
     return comparison
 
 

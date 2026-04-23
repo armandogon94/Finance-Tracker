@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserRegister(BaseModel):
     email: EmailStr
-    password: str
+    # Must match the frontend's "Min 6 characters" copy on the register screen.
+    password: str = Field(..., min_length=6, max_length=200)
     display_name: str | None = None
     currency: str = "USD"
     timezone: str = "America/New_York"

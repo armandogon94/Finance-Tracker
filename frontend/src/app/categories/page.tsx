@@ -28,6 +28,24 @@ import {
   X,
   Loader2,
   Grid3X3,
+  Utensils,
+  Car,
+  ShoppingBag,
+  Film,
+  Zap,
+  Heart,
+  BookOpen,
+  User,
+  Receipt,
+  Home,
+  Plane,
+  Shirt,
+  Lightbulb,
+  Gift,
+  Smartphone,
+  Pill,
+  ShoppingCart,
+  type LucideIcon,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +79,47 @@ const DEFAULT_ICONS = [
   "🍔", "🛒", "🚗", "🏠", "💊", "🎮", "✈️", "📚", "👕", "💡",
   "🎬", "🏋️", "☕", "🎁", "📱",
 ];
+
+// Map the lucide icon *names* the backend seeds (see DEFAULT_CATEGORIES in
+// backend/src/app/routers/auth.py) to the actual React components. User-created
+// categories pick from DEFAULT_ICONS (emoji) and are rendered as plain text.
+const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
+  utensils: Utensils,
+  car: Car,
+  "shopping-bag": ShoppingBag,
+  film: Film,
+  zap: Zap,
+  heart: Heart,
+  book: BookOpen,
+  user: User,
+  receipt: Receipt,
+  home: Home,
+  plane: Plane,
+  shirt: Shirt,
+  lightbulb: Lightbulb,
+  gift: Gift,
+  smartphone: Smartphone,
+  pill: Pill,
+  "shopping-cart": ShoppingCart,
+};
+
+function CategoryIcon({ name, color }: { name?: string | null; color?: string | null }) {
+  const fallbackColor = color ?? "#94A3B8";
+  if (!name) {
+    return (
+      <span
+        className="h-3 w-3 rounded-full"
+        style={{ backgroundColor: fallbackColor }}
+      />
+    );
+  }
+  const Lucide = LUCIDE_ICON_MAP[name];
+  if (Lucide) {
+    return <Lucide className="h-5 w-5" style={{ color: fallbackColor }} />;
+  }
+  // Fall through: emoji / other unicode / unknown string — render as-is.
+  return <span className="text-base leading-none">{name}</span>;
+}
 
 // ─── Sortable Row ───────────────────────────────────────────────────
 
@@ -103,17 +162,12 @@ function SortableCategoryRow({ category, onEdit, onArchive }: SortableRowProps) 
 
       {/* Color + icon */}
       <div
-        className="h-9 w-9 rounded-full flex items-center justify-center text-base flex-shrink-0"
+        className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0"
         style={{
           backgroundColor: (category.color ?? "#94A3B8") + "20",
         }}
       >
-        {category.icon ?? (
-          <span
-            className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: category.color ?? "#94A3B8" }}
-          />
-        )}
+        <CategoryIcon name={category.icon} color={category.color} />
       </div>
 
       {/* Name + budget */}

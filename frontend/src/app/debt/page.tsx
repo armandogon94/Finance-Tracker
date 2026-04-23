@@ -218,7 +218,7 @@ export default function DebtDashboardPage() {
     const point: Record<string, number> = { month };
     strategies.forEach((s) => {
       // Simple linear interpolation for visualization
-      const totalDebt = debtSummary?.total_debt ?? 0;
+      const totalDebt = debtSummary?.total_balance ?? 0;
       const fraction = Math.min(month / s.months_to_freedom, 1);
       point[s.strategy] = Math.max(
         totalDebt * (1 - fraction),
@@ -228,7 +228,7 @@ export default function DebtDashboardPage() {
     return point;
   });
 
-  const totalDebt = debtSummary?.total_debt ?? 0;
+  const totalDebt = debtSummary?.total_balance ?? 0;
   const totalMinPayment = debtSummary?.total_minimum_payment ?? 0;
 
   // ── Render ────────────────────────────────────────────────────────

@@ -46,6 +46,9 @@ playwright-report/
 .playwright-mcp/
 e2e-screenshots/
 e2e-test.mjs
+docs/e2e-validation/screenshots/
+docs/e2e-validation/screenshots-pass2/
+backend/data/
 
 # Temporary
 *.tmp
