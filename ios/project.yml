@@ -33,7 +33,6 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.armandointeligencia.FinanceTracker
-        PRODUCT_NAME: "Finance Tracker"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_PREVIEWS: "YES"
@@ -68,3 +67,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.armandointeligencia.FinanceTrackerTests
         GENERATE_INFOPLIST_FILE: "YES"
+
+schemes:
+  FinanceTracker:
+    build:
+      targets:
+        FinanceTracker: all
+        FinanceTrackerTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - FinanceTrackerTests

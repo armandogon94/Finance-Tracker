@@ -9,7 +9,25 @@ struct RootView: View {
     @Environment(\.appTheme) private var theme
     @Environment(AuthService.self) private var auth
     @Environment(ExpensesService.self) private var expenses
-    @State private var selectedTab: Tab = .home
+    @State private var selectedTab: Tab = RootView.initialTab()
+
+    /// Dev harness: pass `-startTab=expenses|home|scan|debt|chat|more` to
+    /// open that tab on launch. Handy for isolated screenshots.
+    private static func initialTab() -> Tab {
+        for a in ProcessInfo.processInfo.arguments where a.hasPrefix("-startTab=") {
+            let raw = String(a.dropFirst("-startTab=".count))
+            switch raw {
+            case "home":     return .home
+            case "expenses": return .expenses
+            case "scan":     return .scan
+            case "debt":     return .debt
+            case "chat":     return .chat
+            case "more":     return .more
+            default: break
+            }
+        }
+        return .home
+    }
 
     private var skipAuth: Bool {
         UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth")

@@ -120,3 +120,30 @@ struct CreateExpenseDTO: Encodable, Sendable {
         case expenseDate = "expense_date"
     }
 }
+
+/// PATCH body for /api/v1/expenses/{id}/. Every property is optional;
+/// nil values are OMITTED from the JSON (not sent as null) so the
+/// backend's exclude-unset Pydantic model leaves those fields alone.
+struct UpdateExpenseDTO: Encodable, Sendable {
+    let amount: Double?
+    let categoryId: UUID?
+    let description: String?
+    let merchantName: String?
+    let expenseDate: String?  // "YYYY-MM-DD"
+
+    enum CodingKeys: String, CodingKey {
+        case amount, description
+        case categoryId = "category_id"
+        case merchantName = "merchant_name"
+        case expenseDate = "expense_date"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(amount, forKey: .amount)
+        try c.encodeIfPresent(categoryId, forKey: .categoryId)
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(merchantName, forKey: .merchantName)
+        try c.encodeIfPresent(expenseDate, forKey: .expenseDate)
+    }
+}

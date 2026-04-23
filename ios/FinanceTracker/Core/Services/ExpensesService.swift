@@ -99,22 +99,68 @@ final class ExpensesService {
             // Trailing slash matters — FastAPI returns 307 without it on POST,
             // and URLSession drops the body when following redirects.
             let created: ExpenseDTO = try await api.post("/api/v1/expenses/", body: body)
-            let expense = Expense(
-                id: created.id,
-                amount: created.amount,
-                currency: created.currency,
-                description: created.description,
-                merchantName: created.merchantName,
-                categoryId: created.categoryId,
-                expenseDate: created.expenseDate,
-                hasReceipt: false
-            )
+            let expense = Self.mapToExpense(created)
             expenses.insert(expense, at: 0)
             state = .loaded
             return true
         } catch {
             return false
         }
+    }
+
+    /// PATCH an existing expense. Replaces the row in-place on success;
+    /// leaves local state untouched on failure so callers can show an
+    /// inline error without ghost rows.
+    ///
+    /// Note on URL shape: the collection route `/expenses/` wants a
+    /// trailing slash; the individual-resource routes
+    /// `/expenses/{id}` want NO trailing slash (because FastAPI declares
+    /// them as `@router.patch("/{id}")`). Using the wrong form forces a
+    /// 307 round-trip; our RedirectAuthDelegate handles it, but skip the
+    /// dance when we can.
+    func updateExpense(id: UUID, patch: UpdateExpenseDTO) async -> Bool {
+        do {
+            let updated: ExpenseDTO = try await api.patch("/api/v1/expenses/\(id.uuidString)", body: patch)
+            let mapped = Self.mapToExpense(updated)
+            if let idx = expenses.firstIndex(where: { $0.id == id }) {
+                expenses[idx] = mapped
+            } else {
+                expenses.insert(mapped, at: 0)
+            }
+            if state == .empty { state = .loaded }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// DELETE the expense server-side, then remove from the local cache.
+    /// Only mutates on success — if the backend rejects, the row stays put.
+    func deleteExpense(id: UUID) async -> Bool {
+        do {
+            try await api.delete("/api/v1/expenses/\(id.uuidString)")
+            expenses.removeAll { $0.id == id }
+            if expenses.isEmpty && state == .loaded { state = .empty }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    // MARK: - Mapping helper
+
+    private static func mapToExpense(_ dto: ExpenseDTO) -> Expense {
+        Expense(
+            id: dto.id,
+            amount: dto.amount,
+            currency: dto.currency,
+            description: dto.description,
+            merchantName: dto.merchantName,
+            categoryId: dto.categoryId,
+            expenseDate: dto.expenseDate,
+            hasReceipt: dto.receiptImagePath != nil,
+            ocrMethod: dto.ocrMethod
+        )
     }
 
     // MARK: - Derived values used by the UI

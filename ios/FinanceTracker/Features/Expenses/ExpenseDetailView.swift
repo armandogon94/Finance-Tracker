@@ -1,7 +1,10 @@
 //
 //  ExpenseDetailView.swift
-//  Read + edit a single expense. Skeleton shows the layout; the edit
-//  sheet and delete action are visual only.
+//  Single-expense surface. Takes a "stale" Expense for the nav transition
+//  (so the view has something to render the instant it pushes), then
+//  always prefers the live version from ExpensesService for subsequent
+//  renders. That way after an Edit saves, the detail reflects the new
+//  values immediately without a reload.
 //
 
 import SwiftUI
@@ -9,10 +12,24 @@ import SwiftUI
 struct ExpenseDetailView: View {
     @Environment(\.appTheme) private var theme
     @Environment(ExpensesService.self) private var svc
-    let expense: Expense
-    @State private var isEditing = false
+    @Environment(\.dismiss) private var dismiss
 
-    private var lookupCategory: Category? {
+    let initial: Expense
+
+    @State private var showEditSheet = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
+    @State private var actionError: String?
+    @State private var deletedStamp = 0
+    @State private var errorStamp = 0
+
+    /// Always prefer the live row from the service; fall back to the
+    /// stale copy only for the instant between push and first render.
+    private var expense: Expense {
+        svc.expenses.first(where: { $0.id == initial.id }) ?? initial
+    }
+
+    private var category: Category? {
         let pool = svc.categories.isEmpty ? MockData.categories : svc.categories
         return pool.first { $0.id == expense.categoryId }
     }
@@ -26,6 +43,13 @@ struct ExpenseDetailView: View {
                     fieldCard
                     if expense.hasReceipt { receiptCard }
                     actionCard
+                    if let actionError {
+                        Text(actionError)
+                            .font(theme.font.caption)
+                            .foregroundStyle(theme.negative)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                    }
                     Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 16)
@@ -38,16 +62,32 @@ struct ExpenseDetailView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") { isEditing.toggle() }
+                Button("Edit") { showEditSheet = true }
                     .foregroundStyle(theme.accent)
             }
         }
+        .sheet(isPresented: $showEditSheet) {
+            ExpenseEditSheet(original: expense)
+                .presentationDetents([.large])
+                .presentationBackground(theme.id == .liquidGlass
+                                        ? AnyShapeStyle(.ultraThinMaterial)
+                                        : AnyShapeStyle(theme.background))
+        }
+        .alert("Delete this expense?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive, action: performDelete)
+        } message: {
+            Text("This removes it from your history and updates your monthly total. This can't be undone.")
+        }
+        .sensoryFeedback(.warning, trigger: deletedStamp)
+        .sensoryFeedback(.error, trigger: errorStamp)
     }
+
+    // MARK: - Cards
 
     private var heroCard: some View {
         VStack(spacing: 8) {
-            let cat = lookupCategory
-            if let cat {
+            if let cat = category {
                 HStack(spacing: 6) {
                     Image(systemName: cat.iconSystemName)
                     Text(cat.name)
@@ -81,7 +121,7 @@ struct ExpenseDetailView: View {
             Divider().opacity(0.15).padding(.horizontal, 16)
             fieldRow("Merchant", value: expense.merchantName ?? "—")
             Divider().opacity(0.15).padding(.horizontal, 16)
-            fieldRow("Payment", value: "Credit card")
+            fieldRow("Currency", value: expense.currency)
         }
         .themedCard()
     }
@@ -104,11 +144,13 @@ struct ExpenseDetailView: View {
                 Text("Receipt").font(theme.font.titleCompact)
                     .foregroundStyle(theme.textPrimary)
                 Spacer()
-                Text("Claude")
-                    .font(theme.font.captionMedium)
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Capsule().fill(theme.accent.opacity(0.22)))
-                    .foregroundStyle(theme.accent)
+                if let m = expense.ocrMethod {
+                    Text(m.capitalized)
+                        .font(theme.font.captionMedium)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Capsule().fill(theme.accent.opacity(0.22)))
+                        .foregroundStyle(theme.accent)
+                }
             }
             RoundedRectangle(cornerRadius: 14)
                 .fill(theme.surfaceSecondary)
@@ -125,8 +167,10 @@ struct ExpenseDetailView: View {
 
     private var actionCard: some View {
         HStack(spacing: 12) {
-            Button(action: {}) {
-                Label("Duplicate", systemImage: "doc.on.doc")
+            Button {
+                showEditSheet = true
+            } label: {
+                Label("Edit", systemImage: "pencil")
                     .font(theme.font.bodyMedium)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -136,16 +180,45 @@ struct ExpenseDetailView: View {
                     )
                     .foregroundStyle(theme.textPrimary)
             }
-            Button(role: .destructive, action: {}) {
-                Label("Delete", systemImage: "trash")
-                    .font(theme.font.bodyMedium)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.radii.button, style: .continuous)
-                            .fill(theme.negative.opacity(0.18))
-                    )
-                    .foregroundStyle(theme.negative)
+            Button(role: .destructive) {
+                showDeleteConfirm = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isDeleting {
+                        ProgressView().tint(theme.negative)
+                    } else {
+                        Image(systemName: "trash")
+                    }
+                    Text(isDeleting ? "Deleting…" : "Delete")
+                }
+                .font(theme.font.bodyMedium)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.radii.button, style: .continuous)
+                        .fill(theme.negative.opacity(0.18))
+                )
+                .foregroundStyle(theme.negative)
+            }
+            .disabled(isDeleting)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func performDelete() {
+        isDeleting = true
+        actionError = nil
+        Task {
+            let ok = await svc.deleteExpense(id: expense.id)
+            isDeleting = false
+            if ok {
+                deletedStamp += 1
+                try? await Task.sleep(for: .milliseconds(140))
+                dismiss()
+            } else {
+                errorStamp += 1
+                actionError = "Couldn't delete. Check your connection and try again."
             }
         }
     }
@@ -158,7 +231,7 @@ struct ExpenseDetailView: View {
 
 #Preview("ExpenseDetail — Liquid Glass") {
     NavigationStack {
-        ExpenseDetailView(expense: MockData.expenses[0])
+        ExpenseDetailView(initial: MockData.expenses[0])
     }
     .environment(\.appTheme, LiquidGlassTheme())
     .environment(ExpensesService(api: APIClient()))

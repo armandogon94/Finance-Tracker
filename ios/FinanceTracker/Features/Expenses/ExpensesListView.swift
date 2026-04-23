@@ -10,12 +10,20 @@ struct ExpensesListView: View {
     @Environment(ExpensesService.self) private var svc
     @State private var searchText = ""
     @State private var showFilters = false
+    @State private var deleteError: String?
+    @State private var deletedStamp = 0
+    @State private var errorStamp = 0
 
+    /// Only use MockData as a skeleton when we're in -skipAuth preview mode
+    /// and the service hasn't tried to load yet. Never for signed-in users.
+    private var useMock: Bool {
+        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && svc.state == .idle
+    }
     private var sourceExpenses: [Expense] {
-        svc.expenses.isEmpty ? MockData.expenses : svc.expenses
+        useMock ? MockData.expenses : svc.expenses
     }
     private var sourceCategories: [Category] {
-        svc.expenses.isEmpty ? MockData.categories : svc.categories
+        useMock ? MockData.categories : svc.categories
     }
     private func category(for id: UUID?) -> Category? {
         guard let id else { return nil }
@@ -26,17 +34,41 @@ struct ExpensesListView: View {
         NavigationStack {
             ZStack {
                 themedBackdrop
-                ScrollView {
-                    VStack(spacing: 16) {
+                // Use a List so SwiftUI's `.swipeActions` works. The visual
+                // is kept card-ish by hiding list row separators + clearing
+                // row backgrounds so our ThemedBackdrop shows through.
+                List {
+                    Section {
                         filterPills
-                        ForEach(groupedExpenses, id: \.label) { group in
-                            sectionCard(group: group)
-                        }
-                        Spacer(minLength: 40)
+                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 0, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
-                    .padding(.horizontal, 16)
+                    ForEach(groupedExpenses, id: \.label) { group in
+                        Section {
+                            ForEach(group.items) { e in
+                                rowLink(for: e)
+                            }
+                        } header: {
+                            Text(group.label.uppercased())
+                                .font(theme.font.captionMedium)
+                                .tracking(1.2)
+                                .foregroundStyle(theme.textTertiary)
+                                .padding(.leading, 4)
+                        }
+                    }
+                    if let deleteError {
+                        Text(deleteError)
+                            .font(theme.font.caption)
+                            .foregroundStyle(theme.negative)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
                 }
+                .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 0)
+                .navigationDestination(for: Expense.self) { ExpenseDetailView(initial: $0) }
             }
             .navigationTitle("Expenses")
             .searchable(text: $searchText, prompt: "Search merchant, category…")
@@ -47,6 +79,42 @@ struct ExpensesListView: View {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                     }
                 }
+            }
+            .sensoryFeedback(.warning, trigger: deletedStamp)
+            .sensoryFeedback(.error, trigger: errorStamp)
+        }
+    }
+
+    private func rowLink(for e: Expense) -> some View {
+        NavigationLink(value: e) {
+            ExpenseRow(expense: e, category: category(for: e.categoryId))
+        }
+        .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
+        .listRowBackground(
+            RoundedRectangle(cornerRadius: theme.radii.card - 4, style: .continuous)
+                .fill(theme.cardBackground())
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+        )
+        .listRowSeparator(.hidden)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                delete(e)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private func delete(_ e: Expense) {
+        deleteError = nil
+        Task {
+            let ok = await svc.deleteExpense(id: e.id)
+            if ok {
+                deletedStamp += 1
+            } else {
+                errorStamp += 1
+                deleteError = "Couldn't delete \(e.merchantName ?? e.description ?? "expense"). Try again."
             }
         }
     }
@@ -93,30 +161,6 @@ struct ExpensesListView: View {
         return buckets
     }
 
-    private func sectionCard(group: (label: String, items: [Expense])) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(group.label.uppercased())
-                .font(theme.font.captionMedium)
-                .tracking(1.2)
-                .foregroundStyle(theme.textTertiary)
-                .padding(.horizontal, 4)
-
-            VStack(spacing: 0) {
-                ForEach(group.items) { e in
-                    NavigationLink(value: e) {
-                        ExpenseRow(expense: e, category: category(for: e.categoryId))
-                    }
-                    .buttonStyle(.plain)
-                    if e.id != group.items.last?.id {
-                        Divider().opacity(0.15)
-                    }
-                }
-            }
-            .padding(4)
-            .themedCard()
-        }
-        .navigationDestination(for: Expense.self) { ExpenseDetailView(expense: $0) }
-    }
 }
 
 struct ExpenseRow: View {
