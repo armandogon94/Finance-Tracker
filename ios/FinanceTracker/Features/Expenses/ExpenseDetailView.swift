@@ -8,8 +8,14 @@ import SwiftUI
 
 struct ExpenseDetailView: View {
     @Environment(\.appTheme) private var theme
+    @Environment(ExpensesService.self) private var svc
     let expense: Expense
     @State private var isEditing = false
+
+    private var lookupCategory: Category? {
+        let pool = svc.categories.isEmpty ? MockData.categories : svc.categories
+        return pool.first { $0.id == expense.categoryId }
+    }
 
     var body: some View {
         ZStack {
@@ -40,7 +46,7 @@ struct ExpenseDetailView: View {
 
     private var heroCard: some View {
         VStack(spacing: 8) {
-            let cat = MockData.categories.first { $0.id == expense.categoryId }
+            let cat = lookupCategory
             if let cat {
                 HStack(spacing: 6) {
                     Image(systemName: cat.iconSystemName)
@@ -155,5 +161,6 @@ struct ExpenseDetailView: View {
         ExpenseDetailView(expense: MockData.expenses[0])
     }
     .environment(\.appTheme, LiquidGlassTheme())
+    .environment(ExpensesService(api: APIClient()))
     .preferredColorScheme(.dark)
 }

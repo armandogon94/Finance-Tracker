@@ -40,9 +40,6 @@ final class ThemeStore {
     static func theme(for id: ThemeID) -> any AppTheme {
         switch id {
         case .liquidGlass: LiquidGlassTheme()
-        case .editorial: EditorialTheme()
-        case .darkTerminal: DarkTerminalTheme()
-        case .warmPaper: WarmPaperTheme()
         case .healthCards: HealthCardsTheme()
         }
     }

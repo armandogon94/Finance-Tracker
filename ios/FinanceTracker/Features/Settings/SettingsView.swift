@@ -131,8 +131,8 @@ struct SettingsView: View {
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(theme.accent.opacity(0.2)))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Design Playground").font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                    Text("Try five visual languages").font(theme.font.caption).foregroundStyle(theme.textSecondary)
+                    Text("Theme").font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
+                    Text("Liquid Glass or Health Cards").font(theme.font.caption).foregroundStyle(theme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right").foregroundStyle(theme.textTertiary)

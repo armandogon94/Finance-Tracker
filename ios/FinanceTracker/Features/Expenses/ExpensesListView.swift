@@ -7,8 +7,20 @@ import SwiftUI
 
 struct ExpensesListView: View {
     @Environment(\.appTheme) private var theme
+    @Environment(ExpensesService.self) private var svc
     @State private var searchText = ""
     @State private var showFilters = false
+
+    private var sourceExpenses: [Expense] {
+        svc.expenses.isEmpty ? MockData.expenses : svc.expenses
+    }
+    private var sourceCategories: [Category] {
+        svc.expenses.isEmpty ? MockData.categories : svc.categories
+    }
+    private func category(for id: UUID?) -> Category? {
+        guard let id else { return nil }
+        return sourceCategories.first { $0.id == id }
+    }
 
     var body: some View {
         NavigationStack {
@@ -65,7 +77,7 @@ struct ExpensesListView: View {
         var buckets: [(String, [Expense])] = []
         var byKey: [String: [Expense]] = [:]
         let today = Date()
-        for e in MockData.expenses {
+        for e in sourceExpenses {
             let label: String
             if cal.isDateInToday(e.expenseDate) { label = "Today" }
             else if cal.isDateInYesterday(e.expenseDate) { label = "Yesterday" }
@@ -92,7 +104,7 @@ struct ExpensesListView: View {
             VStack(spacing: 0) {
                 ForEach(group.items) { e in
                     NavigationLink(value: e) {
-                        ExpenseRow(expense: e)
+                        ExpenseRow(expense: e, category: category(for: e.categoryId))
                     }
                     .buttonStyle(.plain)
                     if e.id != group.items.last?.id {
@@ -110,15 +122,15 @@ struct ExpensesListView: View {
 struct ExpenseRow: View {
     @Environment(\.appTheme) private var theme
     let expense: Expense
+    let category: Category?
 
     var body: some View {
         HStack(spacing: 12) {
-            let cat = MockData.categories.first { $0.id == expense.categoryId }
             ZStack {
-                Circle().fill((cat?.color ?? theme.textTertiary).opacity(0.22))
-                Image(systemName: cat?.iconSystemName ?? "questionmark")
+                Circle().fill((category?.color ?? theme.textTertiary).opacity(0.22))
+                Image(systemName: category?.iconSystemName ?? "questionmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(cat?.color ?? theme.textSecondary)
+                    .foregroundStyle(category?.color ?? theme.textSecondary)
             }
             .frame(width: 38, height: 38)
 
@@ -133,7 +145,7 @@ struct ExpenseRow: View {
                             .foregroundStyle(theme.accent)
                     }
                 }
-                Text((cat?.name ?? "Uncategorized") + " · " + dayLabel)
+                Text((category?.name ?? "Uncategorized") + " · " + dayLabel)
                     .font(theme.font.caption)
                     .foregroundStyle(theme.textSecondary)
             }
@@ -155,5 +167,6 @@ struct ExpenseRow: View {
 #Preview("Expenses — Liquid Glass") {
     ExpensesListView()
         .environment(\.appTheme, LiquidGlassTheme())
+        .environment(ExpensesService(api: APIClient()))
         .preferredColorScheme(.dark)
 }

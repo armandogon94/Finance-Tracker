@@ -46,14 +46,11 @@ protocol AppTheme: Sendable {
 }
 
 enum ThemeID: String, CaseIterable, Hashable, Sendable {
-    case liquidGlass, editorial, darkTerminal, warmPaper, healthCards
+    case liquidGlass, healthCards
 
     var label: String {
         switch self {
         case .liquidGlass: "Liquid Glass"
-        case .editorial: "Editorial"
-        case .darkTerminal: "Dark Terminal"
-        case .warmPaper: "Warm Paper"
         case .healthCards: "Health Cards"
         }
     }

@@ -7,7 +7,31 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(\.appTheme) private var theme
+    @Environment(ExpensesService.self) private var svc
     @State private var showQuickAdd = false
+
+    /// While the service is loading its first payload (or the user is
+    /// in -skipAuth mode for design review), render MockData so the
+    /// screen is never an empty state during the theme-comparison phase.
+    private var displayExpenses: [Expense] {
+        svc.expenses.isEmpty ? MockData.expenses : svc.expenses
+    }
+    private var displayTotalMonth: Double {
+        svc.expenses.isEmpty ? MockData.totalThisMonth : svc.totalThisMonth
+    }
+    private var displayTotalToday: Double {
+        svc.expenses.isEmpty ? MockData.totalToday : svc.totalToday
+    }
+    private var displayTotalWeek: Double {
+        svc.expenses.isEmpty ? MockData.totalThisWeek : svc.totalThisWeek
+    }
+    private var displayCategories: [Category] {
+        svc.expenses.isEmpty ? MockData.categories : svc.categories
+    }
+    private func lookup(_ id: UUID?) -> Category? {
+        guard let id else { return nil }
+        return displayCategories.first { $0.id == id }
+    }
 
     var body: some View {
         NavigationStack {
@@ -57,14 +81,14 @@ struct HomeView: View {
                 Text("$")
                     .font(theme.font.title)
                     .foregroundStyle(theme.textSecondary)
-                Text(String(format: "%.2f", MockData.totalThisMonth))
+                Text(String(format: "%.2f", displayTotalMonth))
                     .font(theme.font.heroNumeral)
                     .foregroundStyle(theme.textPrimary)
             }
-            Text("$600 remaining of $1,500 budget")
+            Text("$\(Int(max(0, 1500 - displayTotalMonth))) remaining of $1,500 budget")
                 .font(theme.font.caption)
                 .foregroundStyle(theme.textSecondary)
-            ProgressView(value: min(MockData.totalThisMonth, 1500), total: 1500)
+            ProgressView(value: min(displayTotalMonth, 1500), total: 1500)
                 .tint(theme.accent)
                 .padding(.top, 8)
         }
@@ -77,9 +101,9 @@ struct HomeView: View {
 
     private var statRow: some View {
         HStack(spacing: 12) {
-            statCard(label: "Today",     value: MockData.totalToday,      icon: "sun.max.fill",      tint: theme.accent)
-            statCard(label: "This Week", value: MockData.totalThisWeek,   icon: "calendar",          tint: theme.accentSecondary)
-            statCard(label: "Month",     value: MockData.totalThisMonth,  icon: "chart.line.uptrend.xyaxis", tint: theme.positive)
+            statCard(label: "Today",     value: displayTotalToday,  icon: "sun.max.fill",              tint: theme.accent)
+            statCard(label: "This Week", value: displayTotalWeek,   icon: "calendar",                   tint: theme.accentSecondary)
+            statCard(label: "Month",     value: displayTotalMonth,  icon: "chart.line.uptrend.xyaxis",  tint: theme.positive)
         }
     }
 
@@ -116,9 +140,10 @@ struct HomeView: View {
                     .foregroundStyle(theme.accent)
             }
             VStack(spacing: 10) {
-                ForEach(MockData.expenses.prefix(5)) { expense in
-                    HomeExpenseRow(expense: expense)
-                    if expense.id != MockData.expenses.prefix(5).last?.id {
+                let rows = Array(displayExpenses.prefix(5))
+                ForEach(rows) { expense in
+                    HomeExpenseRow(expense: expense, category: lookup(expense.categoryId))
+                    if expense.id != rows.last?.id {
                         Divider().opacity(0.2)
                     }
                 }
@@ -143,15 +168,15 @@ struct HomeView: View {
 private struct HomeExpenseRow: View {
     @Environment(\.appTheme) private var theme
     let expense: Expense
+    let category: Category?
 
     var body: some View {
         HStack(spacing: 12) {
-            let cat = MockData.categories.first { $0.id == expense.categoryId }
             ZStack {
-                Circle().fill((cat?.color ?? theme.textTertiary).opacity(0.2))
-                Image(systemName: cat?.iconSystemName ?? "questionmark")
+                Circle().fill((category?.color ?? theme.textTertiary).opacity(0.2))
+                Image(systemName: category?.iconSystemName ?? "questionmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(cat?.color ?? theme.textSecondary)
+                    .foregroundStyle(category?.color ?? theme.textSecondary)
             }
             .frame(width: 36, height: 36)
 
@@ -159,7 +184,7 @@ private struct HomeExpenseRow: View {
                 Text(expense.merchantName ?? expense.description ?? "Expense")
                     .font(theme.font.bodyMedium)
                     .foregroundStyle(theme.textPrimary)
-                Text((cat?.name ?? "Uncategorized") + " · " + dayLabel)
+                Text((category?.name ?? "Uncategorized") + " · " + dayLabel)
                     .font(theme.font.caption)
                     .foregroundStyle(theme.textSecondary)
             }
@@ -180,5 +205,6 @@ private struct HomeExpenseRow: View {
 #Preview("Home — Liquid Glass") {
     HomeView()
         .environment(\.appTheme, LiquidGlassTheme())
+        .environment(ExpensesService(api: APIClient()))
         .preferredColorScheme(.dark)
 }

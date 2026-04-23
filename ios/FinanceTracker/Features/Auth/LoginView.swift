@@ -1,17 +1,22 @@
 //
 //  LoginView.swift
-//  Entry screen. Bypassed with a single tap in the skeleton — no real
-//  auth, just flips the isAuthenticated flag in RootView.
+//  Entry screen. Calls AuthService.signIn / register, which reads
+//  JWT tokens, persists them to Keychain, and flips the
+//  AuthService.status → .signedIn so RootView swaps to the tab bar.
 //
 
 import SwiftUI
 
 struct LoginView: View {
     @Environment(\.appTheme) private var theme
-    var onSignIn: () -> Void
+    @Environment(AuthService.self) private var auth
 
-    @State private var email = "claude@example.com"
-    @State private var password = "••••••••"
+    @State private var email = ""
+    @State private var password = ""
+    @State private var mode: Mode = .signIn
+    @State private var isWorking = false
+
+    enum Mode: String, Hashable { case signIn, register }
 
     var body: some View {
         ZStack {
@@ -19,73 +24,98 @@ struct LoginView: View {
             VStack(spacing: 28) {
                 Spacer()
 
-                VStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(theme.accent.opacity(0.25))
-                            .frame(width: 88, height: 88)
-                        Image(systemName: "dollarsign")
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundStyle(theme.textPrimary)
-                    }
-                    .shadow(color: theme.accent.opacity(0.5), radius: 30)
-
-                    Text("Finance Tracker")
-                        .font(theme.font.largeTitle)
-                        .foregroundStyle(theme.textPrimary)
-
-                    Text("Welcome back, \(MockData.user.name.components(separatedBy: " ").first ?? "")")
-                        .font(theme.font.body)
-                        .foregroundStyle(theme.textSecondary)
-                }
+                header
 
                 VStack(spacing: 14) {
                     glassField(icon: "envelope.fill", placeholder: "Email", text: $email)
-                    glassField(icon: "lock.fill", placeholder: "Password", text: $password, secure: true)
+                    glassField(icon: "lock.fill", placeholder: "Password (min 6)", text: $password, secure: true)
                 }
                 .padding(.horizontal, 24)
 
+                if let err = auth.lastError?.errorDescription {
+                    Text(err)
+                        .font(theme.font.caption)
+                        .foregroundStyle(theme.negative)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
                 VStack(spacing: 12) {
-                    Button(action: onSignIn) {
-                        Text("Sign In")
-                            .font(theme.font.titleCompact)
-                            .foregroundStyle(Color.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: theme.radii.button, style: .continuous)
-                                    .fill(theme.accent)
-                            )
-                    }
-                    Button {
-                        onSignIn()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "faceid")
-                            Text("Unlock with Face ID")
+                    Button(action: submit) {
+                        HStack {
+                            if isWorking {
+                                ProgressView().tint(.black).padding(.trailing, 4)
+                            }
+                            Text(mode == .signIn ? "Sign In" : "Create Account")
+                                .font(theme.font.titleCompact)
                         }
-                        .font(theme.font.bodyMedium)
-                        .foregroundStyle(theme.textPrimary)
+                        .foregroundStyle(Color.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: theme.radii.button, style: .continuous)
-                                .fill(theme.surface)
+                                .fill(canSubmit ? theme.accent : theme.accent.opacity(0.4))
                         )
+                    }
+                    .disabled(!canSubmit)
+
+                    Button {
+                        mode = mode == .signIn ? .register : .signIn
+                    } label: {
+                        Text(mode == .signIn ? "Don't have an account? Register"
+                                             : "Already have an account? Sign in")
+                            .font(theme.font.caption)
+                            .foregroundStyle(theme.textSecondary)
                     }
                 }
                 .padding(.horizontal, 24)
 
                 Spacer()
+            }
+        }
+    }
 
-                HStack(spacing: 4) {
-                    Text("No account?")
-                        .foregroundStyle(theme.textSecondary)
-                    Button("Register") { onSignIn() }
-                        .foregroundStyle(theme.accent)
-                }
+    private var header: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(theme.accent.opacity(0.25))
+                    .frame(width: 88, height: 88)
+                Image(systemName: "dollarsign")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.textPrimary)
+            }
+            .shadow(color: theme.accent.opacity(0.5), radius: 30)
+
+            Text("Finance Tracker")
+                .font(theme.font.largeTitle)
+                .foregroundStyle(theme.textPrimary)
+
+            Text(mode == .signIn ? "Welcome back" : "Create your account")
                 .font(theme.font.body)
-                .padding(.bottom, 32)
+                .foregroundStyle(theme.textSecondary)
+        }
+    }
+
+    private var canSubmit: Bool {
+        !isWorking
+            && email.contains("@")
+            && password.count >= 6
+    }
+
+    private func submit() {
+        isWorking = true
+        Task {
+            let ok: Bool
+            switch mode {
+            case .signIn:
+                ok = await auth.signIn(email: email, password: password)
+            case .register:
+                ok = await auth.register(email: email, password: password, displayName: nil)
+            }
+            isWorking = false
+            if !ok {
+                // lastError is already set by AuthService; view will redraw.
             }
         }
     }
@@ -98,7 +128,7 @@ struct LoginView: View {
                 .frame(width: 20)
             Group {
                 if secure { SecureField(placeholder, text: text) }
-                else { TextField(placeholder, text: text) }
+                else { TextField(placeholder, text: text).keyboardType(.emailAddress) }
             }
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
@@ -119,7 +149,8 @@ struct LoginView: View {
 }
 
 #Preview("Login — Liquid Glass") {
-    LoginView(onSignIn: {})
+    LoginView()
         .environment(\.appTheme, LiquidGlassTheme())
+        .environment(AuthService())
         .preferredColorScheme(.dark)
 }

@@ -7,18 +7,24 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(\.appTheme) private var theme
-    @State private var isAuthenticated = UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth")
+    @Environment(AuthService.self) private var auth
+    @Environment(ExpensesService.self) private var expenses
     @State private var selectedTab: Tab = .home
+
+    private var skipAuth: Bool {
+        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth")
+    }
 
     var body: some View {
         Group {
-            if isAuthenticated {
+            if auth.isAuthenticated || skipAuth {
                 mainTabView
+                    .task { await expenses.loadAll() }
             } else {
-                LoginView(onSignIn: { isAuthenticated = true })
+                LoginView()
             }
         }
-        .animation(.smooth, value: isAuthenticated)
+        .animation(.smooth, value: auth.isAuthenticated)
     }
 
     private var mainTabView: some View {
@@ -43,7 +49,7 @@ struct RootView: View {
                 .tabItem { Label("Chat", systemImage: "sparkles") }
                 .tag(Tab.chat)
 
-            MoreMenuView(onLogout: { isAuthenticated = false })
+            MoreMenuView(onLogout: { auth.signOut() })
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
                 .tag(Tab.more)
         }
@@ -149,4 +155,6 @@ enum MoreMenuItem: CaseIterable, Hashable {
     RootView()
         .environment(\.appTheme, LiquidGlassTheme())
         .environment(ThemeStore())
+        .environment(AuthService())
+        .environment(ExpensesService(api: APIClient()))
 }

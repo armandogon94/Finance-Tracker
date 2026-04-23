@@ -52,52 +52,6 @@ struct ThemedCardModifier: ViewModifier {
                 )
                 .shadow(color: .black.opacity(inner ? 0.10 : 0.30), radius: inner ? 8 : 18, y: inner ? 4 : 10)
 
-        // MARK: Editorial — flat surface, hairline ink border, no shadow
-        case .editorial:
-            content
-                .background(
-                    Rectangle()
-                        .fill(inner ? theme.surfaceSecondary : theme.surface)
-                )
-                .overlay(
-                    Rectangle()
-                        .strokeBorder(Color.black.opacity(inner ? 0.05 : 0.09), lineWidth: 0.7)
-                )
-
-        // MARK: Dark Terminal — accent top rule + tiny radius + inner glow
-        case .darkTerminal:
-            content
-                .background(
-                    ZStack(alignment: .top) {
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .fill(inner ? theme.surfaceSecondary : theme.surface)
-                        Rectangle()
-                            .fill(theme.accent.opacity(inner ? 0.4 : 0.8))
-                            .frame(height: inner ? 1 : 1.5)
-                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                    }
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
-                )
-
-        // MARK: Warm Paper — cream surface with soft warm-tinted shadow
-        case .warmPaper:
-            content
-                .background(
-                    RoundedRectangle(cornerRadius: r, style: .continuous)
-                        .fill(inner ? theme.surfaceSecondary : theme.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: r, style: .continuous)
-                        .strokeBorder(Color(red: 0.35, green: 0.25, blue: 0.15).opacity(inner ? 0.04 : 0.08), lineWidth: 0.7)
-                )
-                .shadow(
-                    color: Color(red: 0.30, green: 0.18, blue: 0.08).opacity(inner ? 0.05 : 0.12),
-                    radius: inner ? 3 : 8, y: inner ? 1 : 4
-                )
-
         // MARK: Health Cards — clean rounded surface with soft elevation
         case .healthCards:
             content
