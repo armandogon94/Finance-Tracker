@@ -48,6 +48,7 @@ e2e-screenshots/
 e2e-test.mjs
 docs/e2e-validation/screenshots/
 docs/e2e-validation/screenshots-pass2/
+docs/ios-screenshots/
 backend/data/
 
 # Temporary
