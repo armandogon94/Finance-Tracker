@@ -12,6 +12,7 @@ struct ExpenseEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appTheme) private var theme
     @Environment(ExpensesService.self) private var svc
+    @Environment(CategoriesService.self) private var cats
 
     let original: Expense
 
@@ -26,7 +27,7 @@ struct ExpenseEditSheet: View {
     @State private var errorStamp = 0
 
     private var categories: [Category] {
-        svc.categories.isEmpty ? MockData.categories : svc.categories
+        cats.categories.isEmpty ? MockData.categories : cats.categories
     }
     private var parsedAmount: Double? { Double(amountText.replacingOccurrences(of: ",", with: ".")) }
     private var canSave: Bool { !isSaving && (parsedAmount ?? 0) > 0 }
@@ -128,7 +129,11 @@ struct ExpenseEditSheet: View {
                         let active = categoryId == cat.id
                         Button { categoryId = cat.id } label: {
                             HStack(spacing: 6) {
-                                Image(systemName: cat.iconSystemName)
+                                CategoryIcon(
+                                    name: cat.iconSystemName,
+                                    color: active ? cat.color : theme.textSecondary,
+                                    pointSize: 12
+                                )
                                 Text(cat.name)
                             }
                             .font(theme.font.captionMedium)
@@ -271,5 +276,6 @@ struct ExpenseEditSheet: View {
     ExpenseEditSheet(original: MockData.expenses[0])
         .environment(\.appTheme, LiquidGlassTheme())
         .environment(ExpensesService(api: APIClient()))
+        .environment(CategoriesService(api: APIClient()))
         .preferredColorScheme(.dark)
 }

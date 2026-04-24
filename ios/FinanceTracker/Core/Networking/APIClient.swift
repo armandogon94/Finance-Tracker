@@ -82,6 +82,14 @@ actor APIClient {
         _ = try await performRaw(req)
     }
 
+    /// PUT Encodable body decoded to `T`.
+    func put<T: Decodable & Sendable, B: Encodable & Sendable>(
+        _ path: String, body: B
+    ) async throws -> T {
+        let req = try await buildRequest(path: path, method: "PUT", query: [:], body: body)
+        return try await perform(req)
+    }
+
     /// PATCH Encodable body decoded to `T`.
     func patch<T: Decodable & Sendable, B: Encodable & Sendable>(
         _ path: String, body: B

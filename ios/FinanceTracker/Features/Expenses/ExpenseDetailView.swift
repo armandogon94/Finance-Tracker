@@ -12,6 +12,7 @@ import SwiftUI
 struct ExpenseDetailView: View {
     @Environment(\.appTheme) private var theme
     @Environment(ExpensesService.self) private var svc
+    @Environment(CategoriesService.self) private var cats
     @Environment(\.dismiss) private var dismiss
 
     let initial: Expense
@@ -30,7 +31,7 @@ struct ExpenseDetailView: View {
     }
 
     private var category: Category? {
-        let pool = svc.categories.isEmpty ? MockData.categories : svc.categories
+        let pool = cats.categories.isEmpty ? MockData.categories : cats.categories
         return pool.first { $0.id == expense.categoryId }
     }
 
@@ -89,7 +90,7 @@ struct ExpenseDetailView: View {
         VStack(spacing: 8) {
             if let cat = category {
                 HStack(spacing: 6) {
-                    Image(systemName: cat.iconSystemName)
+                    CategoryIcon(name: cat.iconSystemName, color: cat.color, pointSize: 12)
                     Text(cat.name)
                 }
                 .font(theme.font.captionMedium)
@@ -235,5 +236,6 @@ struct ExpenseDetailView: View {
     }
     .environment(\.appTheme, LiquidGlassTheme())
     .environment(ExpensesService(api: APIClient()))
+    .environment(CategoriesService(api: APIClient()))
     .preferredColorScheme(.dark)
 }

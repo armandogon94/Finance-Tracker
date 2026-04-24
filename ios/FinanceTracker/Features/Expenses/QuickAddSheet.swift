@@ -12,6 +12,7 @@ struct QuickAddSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.appTheme) private var theme
     @Environment(ExpensesService.self) private var svc
+    @Environment(CategoriesService.self) private var cats
 
     @State private var amount: String = "0"
     @State private var note: String = ""
@@ -21,7 +22,7 @@ struct QuickAddSheet: View {
     @State private var savedSignal = 0      // drives sensory feedback
 
     private var categories: [Category] {
-        svc.categories.isEmpty ? MockData.categories : svc.categories
+        cats.categories.isEmpty ? MockData.categories : cats.categories
     }
 
     private var parsedAmount: Double? { Double(amount) }
@@ -120,7 +121,11 @@ struct QuickAddSheet: View {
                     let active = selectedCategory?.id == cat.id
                     Button { selectedCategory = cat } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: cat.iconSystemName)
+                            CategoryIcon(
+                                name: cat.iconSystemName,
+                                color: active ? cat.color : theme.textSecondary,
+                                pointSize: 12
+                            )
                             Text(cat.name)
                         }
                         .font(theme.font.captionMedium)
@@ -218,5 +223,6 @@ struct QuickAddSheet: View {
     QuickAddSheet()
         .environment(\.appTheme, LiquidGlassTheme())
         .environment(ExpensesService(api: APIClient()))
+        .environment(CategoriesService(api: APIClient()))
         .preferredColorScheme(.dark)
 }

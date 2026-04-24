@@ -14,6 +14,7 @@ struct FinanceTrackerApp: App {
     @State private var themeStore = ThemeStore()
     @State private var auth = AuthService()
     @State private var expenses: ExpensesService
+    @State private var categories: CategoriesService
 
     init() {
         // Preview harness launch args (see docs/ios-design-previews/capture.sh):
@@ -30,10 +31,12 @@ struct FinanceTrackerApp: App {
             UserDefaults.standard.set(true, forKey: "FinanceTracker.skipAuth")
         }
 
-        // Construct AuthService first so ExpensesService can reuse its APIClient.
+        // Construct AuthService first so the other services can reuse its
+        // APIClient (same actor = same token provider = one keychain read).
         let authService = AuthService()
         self._auth = State(initialValue: authService)
         self._expenses = State(initialValue: ExpensesService(api: authService.api))
+        self._categories = State(initialValue: CategoriesService(api: authService.api))
     }
 
     var body: some Scene {
@@ -43,6 +46,7 @@ struct FinanceTrackerApp: App {
                 .environment(themeStore)
                 .environment(auth)
                 .environment(expenses)
+                .environment(categories)
                 .preferredColorScheme(themeStore.current.preferredColorScheme)
                 .task {
                     await auth.restoreSession()

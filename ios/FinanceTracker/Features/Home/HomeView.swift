@@ -8,6 +8,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.appTheme) private var theme
     @Environment(ExpensesService.self) private var svc
+    @Environment(CategoriesService.self) private var cats
     @State private var showQuickAdd = false
 
     /// If the service has loaded real data (even an empty list) we render
@@ -29,7 +30,7 @@ struct HomeView: View {
         useMock ? MockData.totalThisWeek : svc.totalThisWeek
     }
     private var displayCategories: [Category] {
-        useMock ? MockData.categories : svc.categories
+        useMock ? MockData.categories : cats.categories
     }
     private func lookup(_ id: UUID?) -> Category? {
         guard let id else { return nil }
@@ -177,9 +178,10 @@ private struct HomeExpenseRow: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill((category?.color ?? theme.textTertiary).opacity(0.2))
-                Image(systemName: category?.iconSystemName ?? "questionmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(category?.color ?? theme.textSecondary)
+                CategoryIcon(
+                    name: category?.iconSystemName,
+                    color: category?.color ?? theme.textSecondary
+                )
             }
             .frame(width: 36, height: 36)
 
@@ -209,5 +211,6 @@ private struct HomeExpenseRow: View {
     HomeView()
         .environment(\.appTheme, LiquidGlassTheme())
         .environment(ExpensesService(api: APIClient()))
+        .environment(CategoriesService(api: APIClient()))
         .preferredColorScheme(.dark)
 }

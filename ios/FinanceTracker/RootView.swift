@@ -9,6 +9,7 @@ struct RootView: View {
     @Environment(\.appTheme) private var theme
     @Environment(AuthService.self) private var auth
     @Environment(ExpensesService.self) private var expenses
+    @Environment(CategoriesService.self) private var categories
     @State private var selectedTab: Tab = RootView.initialTab()
 
     /// Dev harness: pass `-startTab=expenses|home|scan|debt|chat|more` to
@@ -37,7 +38,13 @@ struct RootView: View {
         Group {
             if auth.isAuthenticated || skipAuth {
                 mainTabView
-                    .task { await expenses.loadAll() }
+                    .task {
+                        // Load both in parallel — they share the APIClient
+                        // actor and hit independent endpoints.
+                        async let a: Void = expenses.loadAll()
+                        async let b: Void = categories.loadAll()
+                        _ = await (a, b)
+                    }
             } else {
                 LoginView()
             }
@@ -175,4 +182,5 @@ enum MoreMenuItem: CaseIterable, Hashable {
         .environment(ThemeStore())
         .environment(AuthService())
         .environment(ExpensesService(api: APIClient()))
+        .environment(CategoriesService(api: APIClient()))
 }

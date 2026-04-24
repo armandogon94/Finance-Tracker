@@ -8,6 +8,7 @@ import SwiftUI
 struct ExpensesListView: View {
     @Environment(\.appTheme) private var theme
     @Environment(ExpensesService.self) private var svc
+    @Environment(CategoriesService.self) private var cats
     @State private var searchText = ""
     @State private var showFilters = false
     @State private var deleteError: String?
@@ -23,7 +24,7 @@ struct ExpensesListView: View {
         useMock ? MockData.expenses : svc.expenses
     }
     private var sourceCategories: [Category] {
-        useMock ? MockData.categories : svc.categories
+        useMock ? MockData.categories : cats.categories
     }
     private func category(for id: UUID?) -> Category? {
         guard let id else { return nil }
@@ -172,9 +173,10 @@ struct ExpenseRow: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill((category?.color ?? theme.textTertiary).opacity(0.22))
-                Image(systemName: category?.iconSystemName ?? "questionmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(category?.color ?? theme.textSecondary)
+                CategoryIcon(
+                    name: category?.iconSystemName,
+                    color: category?.color ?? theme.textSecondary
+                )
             }
             .frame(width: 38, height: 38)
 
@@ -212,5 +214,6 @@ struct ExpenseRow: View {
     ExpensesListView()
         .environment(\.appTheme, LiquidGlassTheme())
         .environment(ExpensesService(api: APIClient()))
+        .environment(CategoriesService(api: APIClient()))
         .preferredColorScheme(.dark)
 }
