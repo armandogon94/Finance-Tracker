@@ -19,6 +19,11 @@ enum ImageCompressor {
     /// Returns nil only if JPEG encoding fails (very rare; opaque images
     /// always encode). The function is `static` and pure — safe to call
     /// from any actor.
+    ///
+    /// Always emits JPEG so the upload's Content-Type matches what the
+    /// backend expects for a re-encoded receipt. PhotosPicker may hand us
+    /// HEIC, PNG, or WebP from the library — running them through this
+    /// pipeline normalises the format and applies the size cap in one pass.
     static func compress(
         _ image: UIImage,
         maxDimension: CGFloat = 2048,
