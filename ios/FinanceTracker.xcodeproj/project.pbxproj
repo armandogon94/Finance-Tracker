@@ -35,6 +35,7 @@
 		B01D3278C6D08E0511C69B09 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ADE896B846BF60B6FF840B9 /* SettingsView.swift */; };
 		B2CA0C3EDFB9D73A3AE7777A /* PlaceholderThemes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3786437994196017E04F5CCB /* PlaceholderThemes.swift */; };
 		B86C3D691046586772926E5A /* DesignPlaygroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82746839E3BFC73F88FDFA9 /* DesignPlaygroundView.swift */; };
+		BB16820EE3A635BEDF3A1F84 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E19AB5DBD9094B5E0AD488A5 /* SettingsTests.swift */; };
 		BF61DED7F66F00082B1C9124 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732BEDD4234B6D7C030C54A7 /* ChatView.swift */; };
 		C1D80D358827B6F13DFB2666 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E933E374F7256F71AB698555 /* AnalyticsView.swift */; };
 		C2A5BB6C3D905BE8D8057C69 /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A3C2C476A3ECBCB8263C7B2 /* CategoriesView.swift */; };
@@ -98,6 +99,7 @@
 		D18D431A8067CD142B0612CE /* FinanceTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinanceTrackerApp.swift; sourceTree = "<group>"; };
 		D43CA2A4DEC391CB05E19486 /* FinanceTrackerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FinanceTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D80F0EAA3D7A50DE19FEDCF2 /* QuickAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddSheet.swift; sourceTree = "<group>"; };
+		E19AB5DBD9094B5E0AD488A5 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		E3493A0C297FA4E6425E458B /* CategoriesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesService.swift; sourceTree = "<group>"; };
 		E439140686406BBF0E2BA5FC /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
 		E933E374F7256F71AB698555 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
@@ -127,6 +129,7 @@
 			children = (
 				50EA5B1530D6B4714959687E /* CategoryDTOTests.swift */,
 				605F8C946C9BF79B08473FBC /* FinanceTrackerTests.swift */,
+				E19AB5DBD9094B5E0AD488A5 /* SettingsTests.swift */,
 				9AF8FEC09F6328499C6E18C2 /* UpdateExpenseDTOTests.swift */,
 			);
 			path = FinanceTrackerTests;
@@ -476,6 +479,7 @@
 			files = (
 				F39FC4D39438830C25004ED9 /* CategoryDTOTests.swift in Sources */,
 				FE102F31E8F1054188681195 /* FinanceTrackerTests.swift in Sources */,
+				BB16820EE3A635BEDF3A1F84 /* SettingsTests.swift in Sources */,
 				8C81115A55E362052F8F1952 /* UpdateExpenseDTOTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

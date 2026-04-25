@@ -28,6 +28,13 @@ final class CategoriesService {
         self.api = api
     }
 
+    /// Drop everything we have cached. AuthService.signOut calls this so the
+    /// next signed-in user doesn't briefly see the previous user's chips.
+    func reset() {
+        categories = []
+        state = .idle
+    }
+
     // MARK: - Load
 
     func loadAll() async {

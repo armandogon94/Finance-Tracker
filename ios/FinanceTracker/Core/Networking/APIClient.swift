@@ -36,7 +36,13 @@ actor APIClient {
             delegateQueue: nil
         )
         self.tokenProvider = tokenProvider
+        self.decoder = APIClient.makeDecoder()
+    }
 
+    /// Shared decoder factory. Exposed as a static so unit tests can decode
+    /// fixture JSON with the same date-format leniency as production
+    /// (ISO8601 with or without fractional seconds, plus bare YYYY-MM-DD).
+    static func makeDecoder() -> JSONDecoder {
         let dec = JSONDecoder()
         dec.keyDecodingStrategy = .useDefaultKeys // backend uses snake_case; we map manually in models
         let iso = ISO8601DateFormatter()
@@ -57,7 +63,7 @@ actor APIClient {
             if let d = dateOnly.date(from: s) { return d }
             throw DecodingError.dataCorruptedError(in: c, debugDescription: "Cannot parse date: \(s)")
         }
-        self.decoder = dec
+        return dec
     }
 
     // MARK: - Public API

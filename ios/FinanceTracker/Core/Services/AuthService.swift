@@ -19,12 +19,31 @@ final class AuthService {
     private(set) var status: Status = .signedOut
     private(set) var lastError: APIError?
 
-    let api: APIClient
-    private let tokenStore: KeychainTokenStore
+    /// Optional callback invoked on signOut so the surrounding app can wipe
+    /// in-memory caches (ExpensesService, CategoriesService, etc.) without
+    /// AuthService needing to know about those services directly.
+    @ObservationIgnored
+    var onSignOut: (() -> Void)?
 
-    init(tokenStore: KeychainTokenStore = KeychainTokenStore()) {
+    let api: APIClient
+    private let tokenStore: any TokenStore & TokenProvider
+
+    init(tokenStore: any TokenStore & TokenProvider = KeychainTokenStore()) {
         self.tokenStore = tokenStore
         self.api = APIClient(tokenProvider: tokenStore)
+    }
+
+    /// Test-only hook: seed `status` with a UserDTO so signOut tests don't
+    /// need the network. Underscore prefix flags it as not-for-production.
+    func _test_seedSignedIn(user: UserDTO) {
+        status = .signedIn(user)
+    }
+
+    /// Currently-signed-in user, if any. Lets SettingsView read the same
+    /// state without unwrapping the enum at every call site.
+    var currentUser: UserDTO? {
+        if case .signedIn(let u) = status { return u }
+        return nil
     }
 
     // MARK: - Bootstrapping
@@ -129,9 +148,14 @@ final class AuthService {
         }
     }
 
+    /// Sign out: clears the keychain, resets status, and lets the surrounding
+    /// app wipe its in-memory caches via the `onSignOut` callback. Idempotent
+    /// — calling twice is safe and a no-op the second time.
     func signOut() {
         tokenStore.wipe()
         status = .signedOut
+        lastError = nil
+        onSignOut?()
     }
 
     // MARK: - Convenience

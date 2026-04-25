@@ -50,12 +50,17 @@ struct UserDTO: Decodable, Sendable {
     let timezone: String
     let isActive: Bool
     let isSuperuser: Bool
+    /// Account creation date — optional so we don't blow up if the backend
+    /// version we're talking to doesn't expose it. Used by SettingsView for
+    /// the "Member since {month year}" subtitle.
+    let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id, email, currency, timezone
         case displayName = "display_name"
         case isActive = "is_active"
         case isSuperuser = "is_superuser"
+        case createdAt = "created_at"
     }
 }
 

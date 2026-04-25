@@ -24,6 +24,14 @@ final class ExpensesService {
         self.api = api
     }
 
+    /// Drop everything we have cached. Called by AuthService.signOut so the
+    /// next user that signs in doesn't briefly see the previous user's data
+    /// before loadAll() refreshes.
+    func reset() {
+        expenses = []
+        state = .idle
+    }
+
     // MARK: - Loading
 
     func loadAll() async {

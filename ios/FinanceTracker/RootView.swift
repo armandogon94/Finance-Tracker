@@ -74,7 +74,7 @@ struct RootView: View {
                 .tabItem { Label("Chat", systemImage: "sparkles") }
                 .tag(Tab.chat)
 
-            MoreMenuView(onLogout: { auth.signOut() })
+            MoreMenuView()
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
                 .tag(Tab.more)
         }
@@ -90,7 +90,6 @@ enum Tab: Hashable {
 
 struct MoreMenuView: View {
     @Environment(\.appTheme) private var theme
-    var onLogout: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -102,23 +101,14 @@ struct MoreMenuView: View {
                         }
                         .buttonStyle(.plain)
                     }
-
-                    Button(role: .destructive, action: onLogout) {
-                        HStack {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                            Text("Sign Out")
-                                .font(theme.font.bodyMedium)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(theme.surfaceSecondary, in: RoundedRectangle(cornerRadius: theme.radii.card))
-                    }
-                    .padding(.top, 12)
                 }
                 .padding(20)
             }
             .background(theme.background.ignoresSafeArea())
             .navigationTitle("More")
+            // Sign Out lives inside SettingsView — keeping it in one place
+            // avoids "wait, why are there two?" moments and leaves room here
+            // for future cells (Help, Send feedback, etc.).
             .navigationDestination(for: MoreMenuItem.self) { item in
                 switch item {
                 case .analytics: AnalyticsView()
@@ -164,7 +154,7 @@ enum MoreMenuItem: CaseIterable, Hashable {
         switch self {
         case .analytics: "Charts, trends, breakdowns"
         case .categories: "Organize your spending"
-        case .settings: "OCR, theme, Telegram, account"
+        case .settings: "Theme, account, sign out"
         }
     }
     var icon: String {

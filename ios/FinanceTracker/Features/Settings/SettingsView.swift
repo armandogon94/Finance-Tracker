@@ -1,48 +1,34 @@
 //
 //  SettingsView.swift
-//  Profile, OCR preference, theme, Face ID, Telegram linking, data export.
+//  Slice 5: real Settings surface — Account (read from AuthService.currentUser),
+//  Appearance (D1 ↔ D5 picker via ThemeStore), About (version/build), Sign Out.
+//
+//  Themes outside this slice (OCR mode, biometric lock, Telegram linking,
+//  data export) are deliberately removed — they were placeholder mocks.
+//  They will return as their own slices once each feature lands for real.
 //
 
 import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.appTheme) private var theme
-    @State private var faceIdEnabled = true
-    @State private var ocrMode: OcrMode = .auto
-    @State private var currency = "USD"
+    @Environment(AuthService.self) private var auth
+    @Environment(ThemeStore.self) private var themeStore
 
-    enum OcrMode: String, CaseIterable, Hashable {
-        case auto, cloud, offline, manual
-        var label: String {
-            switch self {
-            case .auto: "Auto"
-            case .cloud: "Cloud Only"
-            case .offline: "Offline Only"
-            case .manual: "Manual"
-            }
-        }
-        var summary: String {
-            switch self {
-            case .auto: "Claude → Ollama → Tesseract"
-            case .cloud: "Claude Vision (Haiku 4.5)"
-            case .offline: "On-device Tesseract"
-            case .manual: "Type amounts manually"
-            }
-        }
-    }
+    @State private var showSignOutAlert = false
+    @State private var themeStamp = 0
+    @State private var signOutWarnStamp = 0
+    @State private var signOutDoneStamp = 0
 
     var body: some View {
         ZStack {
             ThemedBackdrop()
             ScrollView {
                 VStack(spacing: 16) {
-                    profileCard
-                    ocrCard
-                    securityCard
-                    designPlaygroundLink
-                    telegramCard
-                    exportCard
+                    accountCard
+                    appearanceCard
                     aboutCard
+                    signOutButton
                     Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 16)
@@ -52,155 +38,218 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .toolbarBackground(.hidden, for: .navigationBar)
+        .alert("Sign out of Finance Tracker?", isPresented: $showSignOutAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Sign out", role: .destructive) {
+                auth.signOut()
+                signOutDoneStamp += 1
+            }
+        } message: {
+            Text("Your saved data stays on the server. You'll need to sign back in to view it.")
+        }
+        .sensoryFeedback(.selection, trigger: themeStamp)
+        .sensoryFeedback(.warning, trigger: signOutWarnStamp)
+        .sensoryFeedback(.success, trigger: signOutDoneStamp)
     }
 
-    private var profileCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    // MARK: - Account
+
+    private var accountCard: some View {
+        let user = auth.currentUser
+        let displayName = user?.displayName?.trimmingCharacters(in: .whitespaces).nonEmpty
+            ?? user?.email ?? "Signed-in user"
+        let initials = Self.initials(from: displayName)
+        return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 ZStack {
                     Circle().fill(theme.accent.opacity(0.25))
-                    Text(String(MockData.user.name.prefix(1)))
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                    Text(initials)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(theme.accent)
                 }
-                .frame(width: 60, height: 60)
+                .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(MockData.user.name).font(theme.font.titleCompact).foregroundStyle(theme.textPrimary)
-                    Text(MockData.user.email).font(theme.font.caption).foregroundStyle(theme.textSecondary)
-                }
-                Spacer()
-            }
-            Divider().opacity(0.15)
-            row(icon: "dollarsign.circle", title: "Currency", value: currency)
-            row(icon: "clock", title: "Timezone", value: "America/New York")
-        }
-        .padding(18)
-        .themedCard()
-    }
-
-    private var ocrCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Receipt OCR", systemImage: "doc.text.viewfinder")
-                .font(theme.font.titleCompact).foregroundStyle(theme.textPrimary)
-            ForEach(OcrMode.allCases, id: \.self) { mode in
-                let active = ocrMode == mode
-                Button { ocrMode = mode } label: {
-                    HStack {
-                        Image(systemName: active ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(active ? theme.accent : theme.textTertiary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(mode.label).font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                            Text(mode.summary).font(theme.font.caption).foregroundStyle(theme.textSecondary)
-                        }
-                        Spacer()
+                    Text(displayName)
+                        .font(theme.font.titleCompact)
+                        .foregroundStyle(theme.textPrimary)
+                    if let email = user?.email {
+                        Text(email)
+                            .font(theme.font.caption)
+                            .foregroundStyle(theme.textSecondary)
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.radii.card - 8, style: .continuous)
-                            .fill(active ? theme.accent.opacity(0.12) : theme.surfaceSecondary)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(18)
-        .themedCard()
-    }
-
-    private var securityCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Security", systemImage: "lock.shield.fill")
-                .font(theme.font.titleCompact).foregroundStyle(theme.textPrimary)
-            Toggle(isOn: $faceIdEnabled) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Unlock with Face ID").font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                    Text("Require biometrics on launch").font(theme.font.caption).foregroundStyle(theme.textSecondary)
-                }
-            }
-            .tint(theme.accent)
-        }
-        .padding(18)
-        .themedCard()
-    }
-
-    private var designPlaygroundLink: some View {
-        NavigationLink { DesignPlaygroundView() } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "paintpalette.fill")
-                    .foregroundStyle(theme.accent)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(theme.accent.opacity(0.2)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Theme").font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                    Text("Liquid Glass or Health Cards").font(theme.font.caption).foregroundStyle(theme.textSecondary)
+                    if let createdAt = user?.createdAt {
+                        Text("Member since \(Self.monthYear(createdAt))")
+                            .font(theme.font.caption)
+                            .foregroundStyle(theme.textTertiary)
+                    }
                 }
                 Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(theme.textTertiary)
             }
-            .padding(16)
-            .themedCard()
+        }
+        .padding(18)
+        .themedCard()
+    }
+
+    // MARK: - Appearance
+
+    private var appearanceCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("APPEARANCE")
+                .font(theme.font.captionMedium).tracking(1.2)
+                .foregroundStyle(theme.textTertiary)
+            HStack(spacing: 12) {
+                themeCard(.liquidGlass)
+                themeCard(.healthCards)
+            }
+        }
+        .padding(18)
+        .themedCard()
+    }
+
+    @ViewBuilder
+    private func themeCard(_ id: ThemeID) -> some View {
+        let active = themeStore.current.id == id
+        let preview = ThemeStore.theme(for: id)
+        Button {
+            themeStore.apply(id)
+            themeStamp += 1
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                // Mini preview: tinted background + a fake hero number + chip.
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(preview.heroGradient())
+                        .frame(height: 78)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Today")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.7))
+                        Text("$78")
+                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(10)
+                }
+                HStack(spacing: 6) {
+                    Circle().fill(preview.accent).frame(width: 8, height: 8)
+                    Text(id.label)
+                        .font(theme.font.bodyMedium)
+                        .foregroundStyle(theme.textPrimary)
+                    Spacer()
+                    if active {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(theme.accent)
+                    }
+                }
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(theme.surfaceSecondary)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(active ? theme.accent : .clear, lineWidth: 2)
+            )
         }
         .buttonStyle(.plain)
     }
 
-    private var telegramCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Telegram bot", systemImage: "paperplane.fill")
-                .font(theme.font.titleCompact).foregroundStyle(theme.textPrimary)
-            Text("Log expenses and scan receipts from @ArmandoFinanceBot on Telegram.")
-                .font(theme.font.caption).foregroundStyle(theme.textSecondary)
-            Button {} label: {
-                Text("Link Telegram account")
-                    .font(theme.font.bodyMedium)
-                    .foregroundStyle(theme.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: theme.radii.button).fill(theme.accent.opacity(0.15)))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(18)
-        .themedCard()
-    }
-
-    private var exportCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Export data", systemImage: "tray.and.arrow.down.fill")
-                .font(theme.font.titleCompact).foregroundStyle(theme.textPrimary)
-            Button {} label: {
-                row(icon: "arrow.down.doc", title: "Download CSV (2026)", value: "")
-            }.buttonStyle(.plain)
-        }
-        .padding(18)
-        .themedCard()
-    }
+    // MARK: - About
 
     private var aboutCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Finance Tracker").font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                Text("v0.1.0 · skeleton build").font(theme.font.caption).foregroundStyle(theme.textSecondary)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ABOUT")
+                .font(theme.font.captionMedium).tracking(1.2)
+                .foregroundStyle(theme.textTertiary)
+            HStack {
+                Image(systemName: "wallet.bifold.fill")
+                    .foregroundStyle(theme.accent)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Finance Tracker")
+                        .font(theme.font.bodyMedium)
+                        .foregroundStyle(theme.textPrimary)
+                    Text(versionLabel)
+                        .font(theme.font.caption)
+                        .foregroundStyle(theme.textSecondary)
+                }
+                Spacer()
             }
-            Spacer()
+            Divider().opacity(0.15)
+            Text("Made by Armando")
+                .font(theme.font.caption)
+                .foregroundStyle(theme.textSecondary)
+            Link(destination: URL(string: "https://armandointeligencia.com")!) {
+                HStack {
+                    Text("armandointeligencia.com")
+                        .font(theme.font.bodyMedium)
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square")
+                }
+                .foregroundStyle(theme.accent)
+            }
         }
         .padding(18)
         .themedCard()
     }
 
-    private func row(icon: String, title: String, value: String) -> some View {
-        HStack {
-            Image(systemName: icon).foregroundStyle(theme.accent)
-            Text(title).font(theme.font.body).foregroundStyle(theme.textPrimary)
-            Spacer()
-            Text(value).font(theme.font.caption).foregroundStyle(theme.textSecondary)
-            Image(systemName: "chevron.right").foregroundStyle(theme.textTertiary)
+    // MARK: - Sign Out
+
+    private var signOutButton: some View {
+        Button(role: .destructive) {
+            signOutWarnStamp += 1
+            showSignOutAlert = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                Text("Sign Out")
+                    .font(theme.font.bodyMedium)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: theme.radii.button, style: .continuous)
+                    .fill(theme.negative.opacity(0.18))
+            )
+            .foregroundStyle(theme.negative)
         }
-        .padding(.vertical, 8)
     }
+
+    // MARK: - Helpers
+
+    private var versionLabel: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "Version \(v) (\(b))"
+    }
+
+    private static func initials(from name: String) -> String {
+        let parts = name.split(separator: " ").map(String.init)
+        if parts.count >= 2,
+           let first = parts.first?.first,
+           let last = parts.dropFirst().first?.first {
+            return "\(first)\(last)".uppercased()
+        }
+        return String(name.prefix(2)).uppercased()
+    }
+
+    private static func monthYear(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        return f.string(from: date)
+    }
+}
+
+private extension String {
+    /// Returns nil for empty / whitespace-only strings, otherwise self.
+    var nonEmpty: String? { isEmpty ? nil : self }
 }
 
 #Preview("Settings — Liquid Glass") {
     NavigationStack { SettingsView() }
         .environment(\.appTheme, LiquidGlassTheme())
+        .environment(ThemeStore())
+        .environment(AuthService())
         .preferredColorScheme(.dark)
 }

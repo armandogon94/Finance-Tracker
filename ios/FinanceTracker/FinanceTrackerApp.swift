@@ -34,9 +34,20 @@ struct FinanceTrackerApp: App {
         // Construct AuthService first so the other services can reuse its
         // APIClient (same actor = same token provider = one keychain read).
         let authService = AuthService()
+        let expensesService = ExpensesService(api: authService.api)
+        let categoriesService = CategoriesService(api: authService.api)
+
+        // On signOut, wipe in-memory caches so the next user starts clean.
+        // AuthService doesn't import these services directly — keeps the
+        // dependency arrow pointing one way (services → auth, not the inverse).
+        authService.onSignOut = { [weak expensesService, weak categoriesService] in
+            expensesService?.reset()
+            categoriesService?.reset()
+        }
+
         self._auth = State(initialValue: authService)
-        self._expenses = State(initialValue: ExpensesService(api: authService.api))
-        self._categories = State(initialValue: CategoriesService(api: authService.api))
+        self._expenses = State(initialValue: expensesService)
+        self._categories = State(initialValue: categoriesService)
     }
 
     var body: some Scene {
