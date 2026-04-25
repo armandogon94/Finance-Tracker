@@ -11,6 +11,7 @@ struct RootView: View {
     @Environment(ExpensesService.self) private var expenses
     @Environment(CategoriesService.self) private var categories
     @Environment(AnalyticsService.self) private var analytics
+    @Environment(DebtService.self) private var debt
     @Environment(AppNavigation.self) private var nav
 
     /// Dev harness: pass `-startTab=expenses|home|scan|debt|chat|more` to
@@ -48,7 +49,8 @@ struct RootView: View {
                         async let a: Void = expenses.loadAll()
                         async let b: Void = categories.loadAll()
                         async let c: Void = analytics.loadAll()
-                        _ = await (a, b, c)
+                        async let d: Void = debt.loadAll()
+                        _ = await (a, b, c, d)
                     }
                     .onAppear {
                         // Honour the -startTab=… launch arg only on first
@@ -191,5 +193,6 @@ enum MoreMenuItem: CaseIterable, Hashable {
         .environment(CategoriesService(api: APIClient()))
         .environment(AnalyticsService(api: APIClient()))
         .environment(ScanService(uploader: { _ in fatalError() }, confirmer: { _ in fatalError() }, onCreated: { _ in }))
+        .environment(DebtService.previewStub())
         .environment(AppNavigation())
 }

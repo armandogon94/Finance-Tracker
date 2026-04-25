@@ -17,6 +17,7 @@ struct FinanceTrackerApp: App {
     @State private var categories: CategoriesService
     @State private var analytics: AnalyticsService
     @State private var scan: ScanService
+    @State private var debt: DebtService
     @State private var navigation = AppNavigation()
 
     init() {
@@ -86,17 +87,41 @@ struct FinanceTrackerApp: App {
             }
         )
 
+        // DebtService loads cards/loans/summary concurrently and fetches
+        // payoff strategies on demand. APIClient is captured by reference
+        // in each closure, so we don't need an explicit `weak` — the actor
+        // outlives the service for the lifetime of the app.
+        let debtService = DebtService(
+            loadCards:       { try await api.get("/api/v1/credit-cards/") },
+            loadLoans:       { try await api.get("/api/v1/loans/") },
+            loadSummary:     { try await api.get("/api/v1/debt/summary") },
+            loadStrategies:  { budget in
+                try await api.get(
+                    "/api/v1/debt/strategies",
+                    query: ["monthly_budget": String(budget)]
+                )
+            },
+            createCardCall:  { body in try await api.post("/api/v1/credit-cards/", body: body) },
+            updateCardCall:  { id, body in try await api.patch("/api/v1/credit-cards/\(id.uuidString)", body: body) },
+            deleteCardCall:  { id in try await api.delete("/api/v1/credit-cards/\(id.uuidString)") },
+            createLoanCall:  { body in try await api.post("/api/v1/loans/", body: body) },
+            updateLoanCall:  { id, body in try await api.patch("/api/v1/loans/\(id.uuidString)", body: body) },
+            deleteLoanCall:  { id in try await api.delete("/api/v1/loans/\(id.uuidString)") }
+        )
+
         // On signOut, wipe in-memory caches so the next user starts clean.
         authService.onSignOut = { [
             weak expensesService,
             weak categoriesService,
             weak analyticsService,
-            weak scanService
+            weak scanService,
+            weak debtService
         ] in
             expensesService?.reset()
             categoriesService?.reset()
             analyticsService?.reset()
             scanService?.reset()
+            debtService?.reset()
         }
 
         self._auth = State(initialValue: authService)
@@ -104,6 +129,7 @@ struct FinanceTrackerApp: App {
         self._categories = State(initialValue: categoriesService)
         self._analytics = State(initialValue: analyticsService)
         self._scan = State(initialValue: scanService)
+        self._debt = State(initialValue: debtService)
     }
 
     var body: some Scene {
@@ -116,6 +142,7 @@ struct FinanceTrackerApp: App {
                 .environment(categories)
                 .environment(analytics)
                 .environment(scan)
+                .environment(debt)
                 .environment(navigation)
                 .preferredColorScheme(themeStore.current.preferredColorScheme)
                 .task {
