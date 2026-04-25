@@ -29,7 +29,9 @@
 		8AF5C7CB10259425D7EE4AD4 /* CategoryIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D2A4E115A83F128F67CDB33 /* CategoryIcon.swift */; };
 		8C81115A55E362052F8F1952 /* UpdateExpenseDTOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF8FEC09F6328499C6E18C2 /* UpdateExpenseDTOTests.swift */; };
 		93504A1AD484D1F7C76B1442 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A19DEECB97F5E9D419FF1 /* APIClient.swift */; };
+		94B492CC3349F5AED3D6166F /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC6376C974DB740C348C6E4D /* AnalyticsService.swift */; };
 		97F92BE594306CEF87800FB0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E65712F5614940B0FF412 /* HomeView.swift */; };
+		9E9AD6970339DB345852E68E /* AnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13074410D8B26B2F8D444D8F /* AnalyticsTests.swift */; };
 		A6A1F6D485CDA87955F33723 /* QuickAddSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80F0EAA3D7A50DE19FEDCF2 /* QuickAddSheet.swift */; };
 		A7781E210B8D509F6013B3F4 /* LiquidGlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B52869498E2485CE9BE169B /* LiquidGlassTheme.swift */; };
 		B01D3278C6D08E0511C69B09 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ADE896B846BF60B6FF840B9 /* SettingsView.swift */; };
@@ -63,6 +65,7 @@
 		03C85317F6D0603456EBB5BA /* ExpensesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpensesListView.swift; sourceTree = "<group>"; };
 		04C118F7944EEDC2B026BFB2 /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
 		0B3BAD578EEB2BD47740275C /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
+		13074410D8B26B2F8D444D8F /* AnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTests.swift; sourceTree = "<group>"; };
 		132A5E304FB138D2AF56B7F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1ADE896B846BF60B6FF840B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		272755EE9454ED42ACBFF0E3 /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
@@ -99,6 +102,7 @@
 		D18D431A8067CD142B0612CE /* FinanceTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinanceTrackerApp.swift; sourceTree = "<group>"; };
 		D43CA2A4DEC391CB05E19486 /* FinanceTrackerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FinanceTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D80F0EAA3D7A50DE19FEDCF2 /* QuickAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddSheet.swift; sourceTree = "<group>"; };
+		DC6376C974DB740C348C6E4D /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		E19AB5DBD9094B5E0AD488A5 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		E3493A0C297FA4E6425E458B /* CategoriesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesService.swift; sourceTree = "<group>"; };
 		E439140686406BBF0E2BA5FC /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
@@ -127,6 +131,7 @@
 		25237C1A46F3E765B90B6436 /* FinanceTrackerTests */ = {
 			isa = PBXGroup;
 			children = (
+				13074410D8B26B2F8D444D8F /* AnalyticsTests.swift */,
 				50EA5B1530D6B4714959687E /* CategoryDTOTests.swift */,
 				605F8C946C9BF79B08473FBC /* FinanceTrackerTests.swift */,
 				E19AB5DBD9094B5E0AD488A5 /* SettingsTests.swift */,
@@ -229,6 +234,7 @@
 		A15D745AE0AC4414E3060454 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				DC6376C974DB740C348C6E4D /* AnalyticsService.swift */,
 				C2C5EFFD3C2703486128EA08 /* AuthService.swift */,
 				E3493A0C297FA4E6425E458B /* CategoriesService.swift */,
 				4FBB11FA3A4B92DBCD5542F8 /* ExpensesService.swift */,
@@ -439,6 +445,7 @@
 				93504A1AD484D1F7C76B1442 /* APIClient.swift in Sources */,
 				748ADC2BF7ABE1832BC76A34 /* APIConfig.swift in Sources */,
 				0EF7B9DFC31AD03A95850542 /* APIError.swift in Sources */,
+				94B492CC3349F5AED3D6166F /* AnalyticsService.swift in Sources */,
 				C1D80D358827B6F13DFB2666 /* AnalyticsView.swift in Sources */,
 				5E9C385E3E22FC6C744882CA /* AppTheme.swift in Sources */,
 				59EB5679C23B8CA10BAC6016 /* AuthService.swift in Sources */,
@@ -477,6 +484,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E9AD6970339DB345852E68E /* AnalyticsTests.swift in Sources */,
 				F39FC4D39438830C25004ED9 /* CategoryDTOTests.swift in Sources */,
 				FE102F31E8F1054188681195 /* FinanceTrackerTests.swift in Sources */,
 				BB16820EE3A635BEDF3A1F84 /* SettingsTests.swift in Sources */,

@@ -211,3 +211,52 @@ struct UpdateExpenseDTO: Encodable, Sendable {
         try c.encodeIfPresent(expenseDate, forKey: .expenseDate)
     }
 }
+
+// MARK: - Analytics
+
+/// `GET /api/v1/analytics/monthly?year=YYYY` response.
+/// Always returns 12 entries; months without spend show `total: 0`.
+struct MonthlyAnalyticsResponseDTO: Decodable, Sendable {
+    let year: Int
+    let data: [MonthlyAnalyticsRowDTO]
+}
+
+struct MonthlyAnalyticsRowDTO: Decodable, Sendable, Equatable {
+    let month: Int       // 1-12
+    let total: Double
+    let count: Int
+}
+
+/// `GET /api/v1/analytics/by-category?start_date=&end_date=` response.
+/// `category_id` is null for the synthetic "Uncategorized" bucket.
+struct CategoryBreakdownResponseDTO: Decodable, Sendable {
+    let data: [CategoryBreakdownRowDTO]
+    let grandTotal: Double
+    let startDate: String?
+    let endDate: String?
+
+    enum CodingKeys: String, CodingKey {
+        case data
+        case grandTotal = "grand_total"
+        case startDate  = "start_date"
+        case endDate    = "end_date"
+    }
+}
+
+struct CategoryBreakdownRowDTO: Decodable, Sendable, Identifiable {
+    let categoryId: UUID?       // nil for "Uncategorized"
+    let categoryName: String
+    let color: String
+    let icon: String
+    let total: Double
+    let count: Int
+    let percentage: Double
+
+    var id: String { categoryId?.uuidString ?? "uncategorized" }
+
+    enum CodingKeys: String, CodingKey {
+        case categoryId   = "category_id"
+        case categoryName = "category_name"
+        case color, icon, total, count, percentage
+    }
+}

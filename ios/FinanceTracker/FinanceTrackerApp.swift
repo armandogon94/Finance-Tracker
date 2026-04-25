@@ -15,6 +15,7 @@ struct FinanceTrackerApp: App {
     @State private var auth = AuthService()
     @State private var expenses: ExpensesService
     @State private var categories: CategoriesService
+    @State private var analytics: AnalyticsService
 
     init() {
         // Preview harness launch args (see docs/ios-design-previews/capture.sh):
@@ -36,18 +37,25 @@ struct FinanceTrackerApp: App {
         let authService = AuthService()
         let expensesService = ExpensesService(api: authService.api)
         let categoriesService = CategoriesService(api: authService.api)
+        let analyticsService = AnalyticsService(api: authService.api)
 
         // On signOut, wipe in-memory caches so the next user starts clean.
         // AuthService doesn't import these services directly — keeps the
         // dependency arrow pointing one way (services → auth, not the inverse).
-        authService.onSignOut = { [weak expensesService, weak categoriesService] in
+        authService.onSignOut = { [
+            weak expensesService,
+            weak categoriesService,
+            weak analyticsService
+        ] in
             expensesService?.reset()
             categoriesService?.reset()
+            analyticsService?.reset()
         }
 
         self._auth = State(initialValue: authService)
         self._expenses = State(initialValue: expensesService)
         self._categories = State(initialValue: categoriesService)
+        self._analytics = State(initialValue: analyticsService)
     }
 
     var body: some Scene {
@@ -58,6 +66,7 @@ struct FinanceTrackerApp: App {
                 .environment(auth)
                 .environment(expenses)
                 .environment(categories)
+                .environment(analytics)
                 .preferredColorScheme(themeStore.current.preferredColorScheme)
                 .task {
                     await auth.restoreSession()

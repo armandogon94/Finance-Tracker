@@ -10,6 +10,7 @@ struct RootView: View {
     @Environment(AuthService.self) private var auth
     @Environment(ExpensesService.self) private var expenses
     @Environment(CategoriesService.self) private var categories
+    @Environment(AnalyticsService.self) private var analytics
     @State private var selectedTab: Tab = RootView.initialTab()
 
     /// Dev harness: pass `-startTab=expenses|home|scan|debt|chat|more` to
@@ -39,11 +40,14 @@ struct RootView: View {
             if auth.isAuthenticated || skipAuth {
                 mainTabView
                     .task {
-                        // Load both in parallel — they share the APIClient
-                        // actor and hit independent endpoints.
+                        // All three loads share the APIClient actor and hit
+                        // independent endpoints — fan out so the user sees a
+                        // populated Home, Analytics tab, and category chips
+                        // in roughly the time of the slowest single request.
                         async let a: Void = expenses.loadAll()
                         async let b: Void = categories.loadAll()
-                        _ = await (a, b)
+                        async let c: Void = analytics.loadAll()
+                        _ = await (a, b, c)
                     }
             } else {
                 LoginView()
@@ -173,4 +177,5 @@ enum MoreMenuItem: CaseIterable, Hashable {
         .environment(AuthService())
         .environment(ExpensesService(api: APIClient()))
         .environment(CategoriesService(api: APIClient()))
+        .environment(AnalyticsService(api: APIClient()))
 }

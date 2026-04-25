@@ -19,8 +19,16 @@ final class FinanceTrackerTests: XCTestCase {
         XCTAssertEqual(MockData.totalDebt, expected, accuracy: 0.01)
     }
 
+    @MainActor
     func testThemeStoreDefaultsToLiquidGlass() {
-        let store = ThemeStore()
+        // Use a throwaway suite so a real-device launch that switched to D5
+        // doesn't leak into this regression test (we hit that exact bug
+        // during slice 6 — the test ran against UserDefaults.standard which
+        // a sim run had already mutated).
+        let suite = "ft.theme.legacy.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = ThemeStore(defaults: defaults, launchArgs: [])
         XCTAssertEqual(store.current.id, .liquidGlass)
     }
 }
