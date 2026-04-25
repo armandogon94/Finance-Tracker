@@ -110,6 +110,38 @@ actor APIClient {
         _ = try await performRaw(req)
     }
 
+    /// POST multipart/form-data with a single binary file part. Used by
+    /// /api/v1/receipts/scan. The backend's parameter name is `file`.
+    func uploadMultipart<T: Decodable & Sendable>(
+        _ path: String,
+        fileField: String = "file",
+        fileName: String,
+        mimeType: String,
+        fileData: Data
+    ) async throws -> T {
+        let boundary = "FT-Boundary-\(UUID().uuidString)"
+        guard let url = URL(string: path, relativeTo: baseURL) else {
+            throw APIError.unknown("Bad URL: \(path)")
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let token = tokenProvider?.currentAccessToken() {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fileField)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        req.httpBody = body
+
+        return try await perform(req)
+    }
+
     // MARK: - Request building
 
     private struct EmptyBody: Encodable, Sendable {}

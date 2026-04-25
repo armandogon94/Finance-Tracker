@@ -11,11 +11,12 @@ struct RootView: View {
     @Environment(ExpensesService.self) private var expenses
     @Environment(CategoriesService.self) private var categories
     @Environment(AnalyticsService.self) private var analytics
-    @State private var selectedTab: Tab = RootView.initialTab()
+    @Environment(AppNavigation.self) private var nav
 
     /// Dev harness: pass `-startTab=expenses|home|scan|debt|chat|more` to
-    /// open that tab on launch. Handy for isolated screenshots.
-    private static func initialTab() -> Tab {
+    /// open that tab on launch. Handy for isolated screenshots. Returns nil
+    /// when the arg is absent so we don't clobber AppNavigation's default.
+    private static func launchArgTab() -> Tab? {
         for a in ProcessInfo.processInfo.arguments where a.hasPrefix("-startTab=") {
             let raw = String(a.dropFirst("-startTab=".count))
             switch raw {
@@ -28,7 +29,7 @@ struct RootView: View {
             default: break
             }
         }
-        return .home
+        return nil
     }
 
     private var skipAuth: Bool {
@@ -49,6 +50,14 @@ struct RootView: View {
                         async let c: Void = analytics.loadAll()
                         _ = await (a, b, c)
                     }
+                    .onAppear {
+                        // Honour the -startTab=… launch arg only on first
+                        // appearance. Subsequent tab switches go through
+                        // AppNavigation (e.g. ScanView post-save).
+                        if let initial = RootView.launchArgTab() {
+                            nav.selectedTab = initial
+                        }
+                    }
             } else {
                 LoginView()
             }
@@ -57,7 +66,10 @@ struct RootView: View {
     }
 
     private var mainTabView: some View {
-        TabView(selection: $selectedTab) {
+        // @Bindable lets us derive a binding off the environment-injected
+        // @Observable AppNavigation so TabView's selection can be two-way.
+        @Bindable var navB = nav
+        return TabView(selection: $navB.selectedTab) {
             HomeView()
                 .tabItem { Label("Home", systemImage: "house.fill") }
                 .tag(Tab.home)
@@ -178,4 +190,6 @@ enum MoreMenuItem: CaseIterable, Hashable {
         .environment(ExpensesService(api: APIClient()))
         .environment(CategoriesService(api: APIClient()))
         .environment(AnalyticsService(api: APIClient()))
+        .environment(ScanService(uploader: { _ in fatalError() }, confirmer: { _ in fatalError() }, onCreated: { _ in }))
+        .environment(AppNavigation())
 }

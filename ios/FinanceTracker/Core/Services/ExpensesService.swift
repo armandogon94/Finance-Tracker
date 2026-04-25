@@ -32,6 +32,14 @@ final class ExpensesService {
         state = .idle
     }
 
+    /// Insert an expense at row 0 — used by ScanService.onCreated so the
+    /// just-confirmed receipt shows up at the top of the list immediately,
+    /// without waiting for a full /expenses/ refresh.
+    func prepend(_ expense: Expense) {
+        expenses.insert(expense, at: 0)
+        state = .loaded
+    }
+
     // MARK: - Loading
 
     func loadAll() async {

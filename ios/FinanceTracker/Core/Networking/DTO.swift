@@ -260,3 +260,119 @@ struct CategoryBreakdownRowDTO: Decodable, Sendable, Identifiable {
         case color, icon, total, count, percentage
     }
 }
+
+// MARK: - Receipts (OCR scan + confirm)
+
+/// `POST /api/v1/receipts/scan` (multipart/form-data) response.
+/// Backend writes the uploaded image into long-term storage but the
+/// expense isn't created yet — it lives in a "pending" bucket keyed
+/// by `tempId` until the iOS user calls /receipts/confirm.
+struct ReceiptScanResponseDTO: Decodable, Sendable {
+    let tempId: UUID
+    let imagePath: String
+    let thumbnailPath: String?
+    let fileSize: Int?
+    let ocrData: ReceiptOcrDataDTO
+    let ocrMethod: String?
+    let needsReview: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case tempId         = "temp_id"
+        case imagePath      = "image_path"
+        case thumbnailPath  = "thumbnail_path"
+        case fileSize       = "file_size"
+        case ocrData        = "ocr_data"
+        case ocrMethod      = "ocr_method"
+        case needsReview    = "needs_review"
+    }
+}
+
+/// Nested `ocr_data` block. Almost every field is optional because Tesseract
+/// (the offline fallback) routinely misses everything except `raw_text`.
+/// Codable so we can both decode it from /scan and echo it back into the
+/// /confirm body verbatim (the backend uses it for telemetry/auditing).
+struct ReceiptOcrDataDTO: Codable, Sendable {
+    let merchantName: String?
+    let date: String?            // backend returns `YYYY-MM-DD`
+    let totalAmount: Double?
+    let currency: String?
+    let paymentMethod: String?
+    let categorySuggestion: String?
+    let rawText: String?
+    let method: String?          // "claude" | "tesseract"
+    let confidence: String?      // "low" | "medium" | "high"
+    let needsReview: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case merchantName       = "merchant_name"
+        case date
+        case totalAmount        = "total_amount"
+        case currency
+        case paymentMethod      = "payment_method"
+        case categorySuggestion = "category_suggestion"
+        case rawText            = "raw_text"
+        case method
+        case confidence
+        case needsReview        = "needs_review"
+    }
+}
+
+/// `POST /api/v1/receipts/confirm` body. Carries the temp_id from /scan
+/// plus the user's edited fields. Backend creates the actual Expense.
+struct ReceiptConfirmRequestDTO: Encodable, Sendable {
+    let tempId: UUID
+    let imagePath: String
+    let thumbnailPath: String?
+    let fileSize: Int?
+    let categoryId: UUID?
+    let amount: Double
+    let taxAmount: Double
+    let currency: String
+    let description: String?
+    let merchantName: String?
+    let expenseDate: String?      // "YYYY-MM-DD"
+    let notes: String?
+    let isTaxDeductible: Bool
+    let ocrData: ReceiptOcrDataDTO?
+    let ocrMethod: String?
+    let ocrConfidence: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case tempId            = "temp_id"
+        case imagePath         = "image_path"
+        case thumbnailPath     = "thumbnail_path"
+        case fileSize          = "file_size"
+        case categoryId        = "category_id"
+        case amount
+        case taxAmount         = "tax_amount"
+        case currency
+        case description
+        case merchantName      = "merchant_name"
+        case expenseDate       = "expense_date"
+        case notes
+        case isTaxDeductible   = "is_tax_deductible"
+        case ocrData           = "ocr_data"
+        case ocrMethod         = "ocr_method"
+        case ocrConfidence     = "ocr_confidence"
+    }
+}
+
+/// `POST /api/v1/receipts/confirm` response. Smaller summary than ExpenseDTO —
+/// just enough for iOS to insert a row optimistically.
+struct ReceiptConfirmResponseDTO: Decodable, Sendable {
+    let expenseId: UUID
+    let archiveId: UUID
+    let amount: Double
+    let merchantName: String?
+    let expenseDate: String       // "YYYY-MM-DD"
+    let imagePath: String
+
+    enum CodingKeys: String, CodingKey {
+        case expenseId    = "expense_id"
+        case archiveId    = "archive_id"
+        case amount
+        case merchantName = "merchant_name"
+        case expenseDate  = "expense_date"
+        case imagePath    = "image_path"
+    }
+}
