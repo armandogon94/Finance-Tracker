@@ -659,3 +659,33 @@ struct UpdateLoanDTO: Encodable, Sendable {
         try c.encodeIfPresent(dueDay, forKey: .dueDay)
     }
 }
+
+// MARK: - Chat (conversation-based, server-side history)
+
+/// `POST /api/v1/chat/conversations` response.
+struct ConversationDTO: Decodable, Sendable {
+    let id: UUID
+    let title: String?
+    let createdAt: Date?
+    let updatedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+/// `POST /api/v1/chat/conversations/{id}/messages` body.
+/// Backend defaults `model` to "haiku" if omitted, but we pass it explicitly
+/// so the iOS user always knows which model produced the answer.
+struct ChatMessageCreateDTO: Encodable, Sendable {
+    let content: String
+    let model: String        // "haiku" | "sonnet"
+}
+
+/// Single chat message, surfaced in the iOS UI. Distinct from any wire
+/// type so we can attach a `streaming` flag for the typing indicator.
+enum ChatRole: String, Codable, Sendable {
+    case user, assistant, system
+}

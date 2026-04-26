@@ -18,6 +18,7 @@ struct FinanceTrackerApp: App {
     @State private var analytics: AnalyticsService
     @State private var scan: ScanService
     @State private var debt: DebtService
+    @State private var chat: ChatService
     @State private var navigation = AppNavigation()
 
     init() {
@@ -109,19 +110,57 @@ struct FinanceTrackerApp: App {
             deleteLoanCall:  { id in try await api.delete("/api/v1/loans/\(id.uuidString)") }
         )
 
+        // ChatService creates a conversation lazily on first send and
+        // streams replies via SSE. The closures capture `api` so the
+        // service stays decoupled from APIClient's actor type.
+        let chatService = ChatService(
+            conversationFactory: {
+                let resp: ConversationDTO = try await api.post(
+                    "/api/v1/chat/conversations",
+                    body: ConversationCreateBody(title: nil)
+                )
+                return resp.id
+            },
+            streamer: { conversationId, content in
+                let raw = try await api.postEventStream(
+                    "/api/v1/chat/conversations/\(conversationId.uuidString)/messages",
+                    body: ChatMessageCreateDTO(content: content, model: "haiku")
+                )
+                // Translate the {type,content} envelope into bare text deltas
+                // so ChatService can stay format-agnostic.
+                return AsyncThrowingStream<String, Error> { c in
+                    let task = Task {
+                        do {
+                            for try await payload in raw {
+                                if let text = ChatStreamEvent.textDelta(from: payload) {
+                                    c.yield(text)
+                                }
+                            }
+                            c.finish()
+                        } catch {
+                            c.finish(throwing: error)
+                        }
+                    }
+                    c.onTermination = { _ in task.cancel() }
+                }
+            }
+        )
+
         // On signOut, wipe in-memory caches so the next user starts clean.
         authService.onSignOut = { [
             weak expensesService,
             weak categoriesService,
             weak analyticsService,
             weak scanService,
-            weak debtService
+            weak debtService,
+            weak chatService
         ] in
             expensesService?.reset()
             categoriesService?.reset()
             analyticsService?.reset()
             scanService?.reset()
             debtService?.reset()
+            chatService?.reset()
         }
 
         self._auth = State(initialValue: authService)
@@ -130,6 +169,11 @@ struct FinanceTrackerApp: App {
         self._analytics = State(initialValue: analyticsService)
         self._scan = State(initialValue: scanService)
         self._debt = State(initialValue: debtService)
+        self._chat = State(initialValue: chatService)
+    }
+
+    private struct ConversationCreateBody: Encodable, Sendable {
+        let title: String?
     }
 
     var body: some Scene {
@@ -143,6 +187,7 @@ struct FinanceTrackerApp: App {
                 .environment(analytics)
                 .environment(scan)
                 .environment(debt)
+                .environment(chat)
                 .environment(navigation)
                 .preferredColorScheme(themeStore.current.preferredColorScheme)
                 .task {

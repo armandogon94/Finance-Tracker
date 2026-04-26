@@ -110,6 +110,58 @@ actor APIClient {
         _ = try await performRaw(req)
     }
 
+    /// POST a JSON body and return an async stream of `data:` payload strings
+    /// from the response (Server-Sent Events). The caller decodes each
+    /// payload as JSON. Used by `/api/v1/chat/.../messages`.
+    func postEventStream<B: Encodable & Sendable>(
+        _ path: String, body: B
+    ) async throws -> AsyncThrowingStream<String, Error> {
+        let req = try await buildRequest(
+            path: path, method: "POST", query: [:], body: body, accept: "text/event-stream"
+        )
+        let (bytes, response) = try await session.bytes(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.unknown("Bad response type")
+        }
+        if http.statusCode == 401 { throw APIError.unauthorized }
+        if !(200...299).contains(http.statusCode) {
+            throw APIError.unknown("HTTP \(http.statusCode)")
+        }
+
+        return AsyncThrowingStream<String, Error> { continuation in
+            let task = Task {
+                var parser = SSEParser()
+                var buffer = ""
+                do {
+                    for try await byte in bytes {
+                        let scalar = UnicodeScalar(byte)
+                        buffer.append(Character(scalar))
+                        // Flush after every newline so partial events parse correctly.
+                        if scalar == "\n" {
+                            for payload in parser.feed(buffer) {
+                                continuation.yield(payload)
+                            }
+                            buffer = ""
+                        }
+                    }
+                    // Drain anything left in the line/event buffer.
+                    if !buffer.isEmpty {
+                        for payload in parser.feed(buffer) {
+                            continuation.yield(payload)
+                        }
+                    }
+                    for payload in parser.flush() {
+                        continuation.yield(payload)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     /// POST multipart/form-data with a single binary file part. Used by
     /// /api/v1/receipts/scan. The backend's parameter name is `file`.
     func uploadMultipart<T: Decodable & Sendable>(
@@ -147,7 +199,11 @@ actor APIClient {
     private struct EmptyBody: Encodable, Sendable {}
 
     private func buildRequest<B: Encodable & Sendable>(
-        path: String, method: String, query: [String: String], body: B?
+        path: String,
+        method: String,
+        query: [String: String],
+        body: B?,
+        accept: String = "application/json"
     ) async throws -> URLRequest {
         guard var comps = URLComponents(url: baseURL.appendingPathComponent(path, isDirectory: false),
                                         resolvingAgainstBaseURL: false) else {
@@ -163,7 +219,7 @@ actor APIClient {
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue(accept, forHTTPHeaderField: "Accept")
         if let token = tokenProvider?.currentAccessToken() {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

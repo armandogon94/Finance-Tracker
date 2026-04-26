@@ -1,181 +1,242 @@
 //
 //  ChatView.swift
-//  AI Finance Chat — conversation list sidebar, chat bubbles, Haiku/Sonnet
-//  model toggle. The streaming itself is faked with canned messages;
-//  APIClient + SSE will replace this next phase.
+//  Slice 9 — Claude-powered finance assistant. Conversation lives on
+//  the server (keyed by ChatService.conversationId) so iOS just renders
+//  the bubble list, autoscrolls on new content, and POSTs new messages
+//  to the SSE endpoint via ChatService.
 //
 
 import SwiftUI
 
 struct ChatView: View {
     @Environment(\.appTheme) private var theme
-    @State private var input = ""
-    @State private var model: Model = .haiku
-    @State private var conversations: [ChatConversation] = MockData.conversations
-    @State private var selectedId: UUID? = MockData.conversations.first?.id
-    @State private var messages: [ChatMessage] = MockData.messages
-    @State private var showSidebar = false
+    @Environment(ChatService.self) private var chat
 
-    enum Model: String { case haiku, sonnet }
+    @State private var draft: String = ""
+    @State private var showClearConfirm = false
+    @State private var sendStamp = 0
+    @State private var errorStamp = 0
+    @FocusState private var inputFocused: Bool
+
+    private var canSend: Bool {
+        chat.state != .streaming
+            && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 ThemedBackdrop()
-
                 VStack(spacing: 0) {
-                    header
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(messages) { m in
-                                ChatBubble(message: m)
-                            }
-                        }
-                        .padding(16)
+                    if chat.messages.isEmpty {
+                        emptyState
+                    } else {
+                        messagesScroll
                     }
-                    composer
+                    inputBar
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { showSidebar = true } label: { Image(systemName: "sidebar.left") }
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle("")
+            .navigationTitle("Finance assistant")
             .toolbarBackground(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showSidebar) {
-                ConversationSidebar(conversations: $conversations, selectedId: $selectedId)
-                    .presentationDetents([.medium, .large])
-                    .presentationBackground(theme.id == .liquidGlass ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(theme.background))
+            .toolbar {
+                if !chat.messages.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            showClearConfirm = true
+                        } label: {
+                            Image(systemName: "trash").foregroundStyle(theme.negative)
+                        }
+                    }
+                }
+            }
+        }
+        .alert("Clear conversation?", isPresented: $showClearConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) { chat.clear() }
+        } message: {
+            Text("This deletes the chat from your phone. Your expenses and budgets aren't affected.")
+        }
+        .sensoryFeedback(.selection, trigger: sendStamp)
+        .sensoryFeedback(.error, trigger: errorStamp)
+        .onChange(of: chat.state) { _, new in
+            if case .failed = new { errorStamp += 1 }
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var emptyState: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 24)
+            Image(systemName: "sparkles")
+                .font(.system(size: 60, weight: .light))
+                .foregroundStyle(theme.accent)
+            VStack(spacing: 6) {
+                Text("Ask about your money")
+                    .font(theme.font.title)
+                    .foregroundStyle(theme.textPrimary)
+                Text("Claude can see your expenses, categories, and debt — ask anything.")
+                    .font(theme.font.caption)
+                    .foregroundStyle(theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+            VStack(spacing: 10) {
+                ForEach(chat.suggestions, id: \.self) { suggestion in
+                    Button {
+                        draft = suggestion
+                        inputFocused = true
+                    } label: {
+                        HStack {
+                            Text(suggestion)
+                                .font(theme.font.bodyMedium)
+                                .foregroundStyle(theme.textPrimary)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                            Image(systemName: "arrow.up.left").foregroundStyle(theme.textTertiary)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                        .background(theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            Spacer()
+        }
+    }
+
+    // MARK: - Messages
+
+    private var messagesScroll: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(chat.messages) { msg in
+                        bubble(msg)
+                            .id(msg.id)
+                    }
+                    Color.clear.frame(height: 1).id(Self.bottomAnchor)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+            }
+            .onAppear { scrollToBottom(proxy: proxy, animated: false) }
+            .onChange(of: chat.messages.count) { _, _ in
+                scrollToBottom(proxy: proxy, animated: true)
+            }
+            .onChange(of: chat.messages.last?.content) { _, _ in
+                scrollToBottom(proxy: proxy, animated: false)
             }
         }
     }
 
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles").foregroundStyle(theme.accent)
-                    Text("AI Finance Chat").font(theme.font.titleCompact).foregroundStyle(theme.textPrimary)
+    private static let bottomAnchor = "ft.chat.bottom"
+
+    private func scrollToBottom(proxy: ScrollViewProxy, animated: Bool) {
+        if animated {
+            withAnimation(.easeOut(duration: 0.18)) {
+                proxy.scrollTo(Self.bottomAnchor, anchor: .bottom)
+            }
+        } else {
+            proxy.scrollTo(Self.bottomAnchor, anchor: .bottom)
+        }
+    }
+
+    @ViewBuilder
+    private func bubble(_ msg: ChatService.Message) -> some View {
+        switch msg.role {
+        case .user:
+            HStack {
+                Spacer(minLength: 40)
+                Text(msg.content)
+                    .font(theme.font.body)
+                    .foregroundStyle(Color.black)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(theme.accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+        case .assistant:
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if !msg.content.isEmpty {
+                        Text(msg.content)
+                            .font(theme.font.body)
+                            .foregroundStyle(theme.textPrimary)
+                            .textSelection(.enabled)
+                    }
+                    if msg.isStreaming {
+                        TypingIndicator(color: theme.textTertiary)
+                    }
                 }
-                Text(conversations.first { $0.id == selectedId }?.title ?? "")
-                    .font(theme.font.caption)
-                    .foregroundStyle(theme.textSecondary)
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                Spacer(minLength: 40)
             }
-            Spacer()
-            Picker("Model", selection: $model) {
-                Text("Haiku").tag(Model.haiku)
-                Text("Sonnet").tag(Model.sonnet)
+        case .system:
+            EmptyView()
+        }
+    }
+
+    // MARK: - Input bar
+
+    private var inputBar: some View {
+        HStack(spacing: 10) {
+            TextField("Ask a question…", text: $draft, axis: .vertical)
+                .lineLimit(1...5)
+                .focused($inputFocused)
+                .font(theme.font.body)
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .submitLabel(.send)
+                .onSubmit { tapSend() }
+
+            Button {
+                tapSend()
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 32, weight: .regular))
+                    .foregroundStyle(canSend ? theme.accent : theme.accent.opacity(0.4))
             }
-            .pickerStyle(.segmented)
-            .frame(width: 160)
+            .disabled(!canSend)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial.opacity(theme.id == .liquidGlass ? 0.7 : 0.0))
-        .background(theme.surface)
+        .background(theme.background.opacity(0.95))
     }
 
-    private var composer: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "message").foregroundStyle(theme.textTertiary)
-                TextField("Ask about your spending, debt, or budget…", text: $input)
-                    .font(theme.font.body)
-                    .foregroundStyle(theme.textPrimary)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: theme.radii.button, style: .continuous)
-                    .fill(theme.surface)
-            )
-
-            Button {
-                guard !input.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                messages.append(ChatMessage(id: UUID(), role: .user, content: input, timestamp: Date()))
-                messages.append(ChatMessage(id: UUID(), role: .assistant,
-                                            content: "Got it — I'd pull your last 30 days here and reply with Claude \(model.rawValue) streaming. (Skeleton UI.)",
-                                            timestamp: Date()))
-                input = ""
-            } label: {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Color.black)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(theme.accent))
-            }
-        }
-        .padding(16)
-        .background(theme.background.opacity(0.3))
+    private func tapSend() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        draft = ""
+        sendStamp += 1
+        Task { await chat.send(text) }
     }
 }
 
-private struct ChatBubble: View {
-    @Environment(\.appTheme) private var theme
-    let message: ChatMessage
+// MARK: - Typing indicator
+
+private struct TypingIndicator: View {
+    let color: Color
+    @State private var phase: Int = 0
 
     var body: some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(message.content)
-                    .font(theme.font.body)
-                    .foregroundStyle(message.role == .user ? Color.black : theme.textPrimary)
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(message.role == .user ? AnyShapeStyle(theme.accent)
-                                                        : AnyShapeStyle(theme.cardBackground()))
-                    )
+        HStack(spacing: 4) {
+            ForEach(0..<3) { i in
+                Circle()
+                    .fill(color)
+                    .frame(width: 6, height: 6)
+                    .opacity(phase == i ? 1.0 : 0.35)
             }
-            if message.role == .assistant { Spacer(minLength: 40) }
         }
-    }
-}
-
-private struct ConversationSidebar: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.appTheme) private var theme
-    @Binding var conversations: [ChatConversation]
-    @Binding var selectedId: UUID?
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 10) {
-                    Button { conversations.insert(ChatConversation(id: UUID(), title: "New chat", lastMessagePreview: "", updatedAt: Date()), at: 0) } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle.fill").foregroundStyle(theme.accent)
-                            Text("New conversation").font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                            Spacer()
-                        }
-                        .padding(14)
-                        .background(RoundedRectangle(cornerRadius: theme.radii.card).fill(theme.surface))
-                    }
-                    ForEach(conversations) { c in
-                        Button { selectedId = c.id; dismiss() } label: {
-                            HStack(spacing: 12) {
-                                Circle().fill(c.id == selectedId ? theme.accent : theme.textTertiary).frame(width: 8, height: 8)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(c.title).font(theme.font.bodyMedium).foregroundStyle(theme.textPrimary)
-                                    Text(c.lastMessagePreview).font(theme.font.caption).foregroundStyle(theme.textSecondary).lineLimit(1)
-                                }
-                                Spacer()
-                            }
-                            .padding(14)
-                            .background(
-                                RoundedRectangle(cornerRadius: theme.radii.card)
-                                    .fill(c.id == selectedId ? theme.accent.opacity(0.18) : theme.surface)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(16)
+        .padding(.vertical, 2)
+        .task {
+            // 0 → 1 → 2 → 0 every 0.4s. Task gets cancelled when this
+            // bubble's `isStreaming` flips false and the view rebuilds.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(400))
+                phase = (phase + 1) % 3
             }
-            .navigationTitle("Conversations")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -183,5 +244,11 @@ private struct ConversationSidebar: View {
 #Preview("Chat — Liquid Glass") {
     ChatView()
         .environment(\.appTheme, LiquidGlassTheme())
+        .environment(ChatService(
+            conversationFactory: { UUID() },
+            streamer: { _, _ in
+                AsyncThrowingStream { c in c.finish() }
+            }
+        ))
         .preferredColorScheme(.dark)
 }
