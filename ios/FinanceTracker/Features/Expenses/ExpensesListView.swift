@@ -17,8 +17,13 @@ struct ExpensesListView: View {
 
     /// Only use MockData as a skeleton when we're in -skipAuth preview mode
     /// and the service hasn't tried to load yet. Never for signed-in users.
+    /// Slice 10: gated to Debug only — Release builds never see MockData.
     private var useMock: Bool {
-        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && svc.state == .idle
+        #if DEBUG
+        return UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && svc.state == .idle
+        #else
+        return false
+        #endif
     }
     private var sourceExpenses: [Expense] {
         useMock ? MockData.expenses : svc.expenses

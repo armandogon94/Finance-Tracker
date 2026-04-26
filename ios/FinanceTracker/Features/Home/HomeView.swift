@@ -15,7 +15,13 @@ struct HomeView: View {
     /// that. MockData only shows when the user is in -skipAuth mode so
     /// design-comparison screenshots aren't empty.
     private var useMock: Bool {
-        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && svc.state == .idle
+        // Slice 10: Release builds can never fall back to MockData even
+        // if the launch arg is set somehow.
+        #if DEBUG
+        return UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && svc.state == .idle
+        #else
+        return false
+        #endif
     }
     private var displayExpenses: [Expense] {
         useMock ? MockData.expenses : svc.expenses
@@ -166,6 +172,8 @@ struct HomeView: View {
                 .background(Circle().fill(theme.accent))
                 .shadow(color: theme.accent.opacity(0.55), radius: 18, y: 8)
         }
+        .accessibilityLabel("Add expense")
+        .accessibilityHint("Opens the Quick Add sheet")
     }
 }
 

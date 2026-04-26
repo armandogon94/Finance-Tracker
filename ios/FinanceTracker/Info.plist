@@ -26,10 +26,17 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Finance Tracker uses the camera to scan receipts.</string>
+	<string>Finance Tracker uses the camera to scan receipts and turn them into expenses automatically.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock Finance Tracker.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Attach receipts from your photo library.</string>
+	<string>Attach receipts from your photo library to extract amount and merchant automatically.</string>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchLogo</string>
+	</dict>
 </dict>
 </plist>

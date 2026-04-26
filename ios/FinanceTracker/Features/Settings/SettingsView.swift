@@ -189,9 +189,30 @@ struct SettingsView: View {
                 }
                 .foregroundStyle(theme.accent)
             }
+            Divider().opacity(0.15)
+            // Slice 10: App Store requires accessible Privacy Policy +
+            // Terms URLs. The marketing pages don't exist yet — Apple
+            // just needs the URLs to resolve to *something* before review.
+            Link(destination: URL(string: "https://armandointeligencia.com/privacy")!) {
+                aboutLinkRow(label: "Privacy Policy", systemImage: "hand.raised.fill")
+            }
+            Link(destination: URL(string: "https://armandointeligencia.com/terms")!) {
+                aboutLinkRow(label: "Terms of Service", systemImage: "doc.text.fill")
+            }
         }
         .padding(18)
         .themedCard()
+    }
+
+    private func aboutLinkRow(label: String, systemImage: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .foregroundStyle(theme.textSecondary)
+                .frame(width: 20)
+            Text(label).font(theme.font.body).foregroundStyle(theme.textPrimary)
+            Spacer()
+            Image(systemName: "arrow.up.right.square").foregroundStyle(theme.textTertiary)
+        }
     }
 
     // MARK: - Sign Out

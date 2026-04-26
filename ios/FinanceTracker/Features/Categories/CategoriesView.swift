@@ -22,8 +22,13 @@ struct CategoriesView: View {
     /// Skeleton fallback only when the user launched with -skipAuth and
     /// the service hasn't tried to load yet. Signed-in users always see
     /// live data (or an empty state after load).
+    /// Slice 10: gated to Debug only — Release builds never see MockData.
     private var useMock: Bool {
-        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && cats.state == .idle
+        #if DEBUG
+        return UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth") && cats.state == .idle
+        #else
+        return false
+        #endif
     }
     private var displayCategories: [Category] {
         useMock ? MockData.categories : cats.categories

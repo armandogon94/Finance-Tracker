@@ -13,6 +13,9 @@ struct RootView: View {
     @Environment(AnalyticsService.self) private var analytics
     @Environment(DebtService.self) private var debt
     @Environment(AppNavigation.self) private var nav
+    @Environment(OnboardingState.self) private var onboarding
+
+    @State private var showWelcome = false
 
     /// Dev harness: pass `-startTab=expenses|home|scan|debt|chat|more` to
     /// open that tab on launch. Handy for isolated screenshots. Returns nil
@@ -34,7 +37,14 @@ struct RootView: View {
     }
 
     private var skipAuth: Bool {
-        UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth")
+        // skipAuth + MockData fallbacks are dev-only conveniences from
+        // slice 0. In Release builds (TestFlight, App Store) auth is
+        // strictly required — no launch arg can bypass it.
+        #if DEBUG
+        return UserDefaults.standard.bool(forKey: "FinanceTracker.skipAuth")
+        #else
+        return false
+        #endif
     }
 
     var body: some View {
@@ -65,6 +75,17 @@ struct RootView: View {
             }
         }
         .animation(.smooth, value: auth.isAuthenticated)
+        .onAppear {
+            // Defer the sheet to the next runloop tick so it doesn't fight
+            // the cold-launch transition. iOS 26 doesn't always paint the
+            // background view if a sheet presents synchronously on appear.
+            if !onboarding.hasSeenWelcome { showWelcome = true }
+        }
+        .sheet(isPresented: $showWelcome) {
+            WelcomeView()
+                .presentationDetents([.large])
+                .presentationBackgroundInteraction(.disabled)
+        }
     }
 
     private var mainTabView: some View {
@@ -194,5 +215,7 @@ enum MoreMenuItem: CaseIterable, Hashable {
         .environment(AnalyticsService(api: APIClient()))
         .environment(ScanService(uploader: { _ in fatalError() }, confirmer: { _ in fatalError() }, onCreated: { _ in }))
         .environment(DebtService.previewStub())
+        .environment(ChatService(conversationFactory: { UUID() }, streamer: { _, _ in AsyncThrowingStream { c in c.finish() } }))
         .environment(AppNavigation())
+        .environment(OnboardingState())
 }

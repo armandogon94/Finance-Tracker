@@ -12,6 +12,7 @@ import SwiftUI
 @main
 struct FinanceTrackerApp: App {
     @State private var themeStore = ThemeStore()
+    @State private var onboarding = OnboardingState()
     @State private var auth = AuthService()
     @State private var expenses: ExpensesService
     @State private var categories: CategoriesService
@@ -181,6 +182,7 @@ struct FinanceTrackerApp: App {
             RootView()
                 .environment(\.appTheme, themeStore.current)
                 .environment(themeStore)
+                .environment(onboarding)
                 .environment(auth)
                 .environment(expenses)
                 .environment(categories)
